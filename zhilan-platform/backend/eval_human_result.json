@@ -1,0 +1,226 @@
+[
+  {
+    "q": "美国这轮对伊朗的经济制裁，为什么偏偏给中国留了口子？",
+    "gold": 788,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "哈里和梅根要是回英国定居，他们会怎么安排自己的工作和生活？",
+    "gold": 789,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "华盛顿再次对伊朗动手，这轮制裁真能让德黑兰低头吗？",
+    "gold": 790,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "美国乡村音乐天后去世了，她这一生留下了哪些经典作品？",
+    "gold": 800,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "搬到英国布里斯托尔的香港人，靠什么活动找到了归属感？",
+    "gold": 801,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "塔利班掌权后的阿富汗，普通人的生活受到了哪些管控？",
+    "gold": 803,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "现在中国有些年轻人靠嗑处方药来逃避压力，这是怎么回事？",
+    "gold": 805,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "全球海洋温度最近为何打破历史纪录？",
+    "gold": 807,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "人为什么会莫名其妙地对没有实际危险的东西感到恐惧？",
+    "gold": 808,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "有台湾艺人往日本国宝上泼东西，这事会怎样影响台日关系？",
+    "gold": 811,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "有的女孩才六岁就来月经了，医生为什么也查不出原因？",
+    "gold": 812,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "西藏靠近尼泊尔边境的山洪灾害，现在有多少人下落不明？",
+    "gold": 787,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "老干妈的创始人陶华碧，她的成功经历给了我们哪些启发？",
+    "gold": 806,
+    "group": "long",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "今年暑期档的电影市场成绩怎么样？",
+    "gold": 121,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "伊朗高层最近对地区冲突释放了什么强硬信号？",
+    "gold": 92,
+    "group": "short",
+    "bm25_rank": 2,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "美国最近是不是打算往中东增派航母了？",
+    "gold": 93,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "香港今年上半年的外贸进出口数据表现如何？",
+    "gold": 103,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "今年有多少东南亚水果是通过中老铁路运进中国的？",
+    "gold": 117,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "两弹一星元勋里那位转行搞航天的王希季有什么贡献？",
+    "gold": 118,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "欧洲消费者现在怎么看中国制造的电动汽车？",
+    "gold": 122,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "日本最新财年的防卫预算申请有什么值得关注的动向？",
+    "gold": 124,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "河南周口贾鲁河的那处决口最后堵上了吗？",
+    "gold": 516,
+    "group": "short",
+    "bm25_rank": 3,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "福州最近的高温天气，反而带火了什么消费？",
+    "gold": 105,
+    "group": "short",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "美国制裁伊朗的新措施里，为什么对中国企业网开一面？",
+    "gold": 788,
+    "group": "hard",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "美国对伊朗的新制裁能不能奏效，会不会真的让德黑兰改变政策？",
+    "gold": 790,
+    "group": "hard",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "日本现在是不是正在走向军国主义的道路上？",
+    "gold": 123,
+    "group": "hard",
+    "bm25_rank": 2,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "日本政府新一年申请的防卫预算金额达到了多少？",
+    "gold": 124,
+    "group": "hard",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  },
+  {
+    "q": "北京景山公园晚上开放后，游客能体验到什么新东西？",
+    "gold": 369,
+    "group": "hard",
+    "bm25_rank": 1,
+    "rrf_rank": 1,
+    "rerank_rank": 1
+  }
+]

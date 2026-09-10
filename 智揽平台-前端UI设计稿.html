@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智览 — AI自动化研报/新闻摘要生成平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+      },
+    }
+  }
+}
+</script>
+<style>
+:root {
+  --bg: oklch(0.985 0.003 260);
+  --bg-card: oklch(1 0 0);
+  --border: oklch(0.91 0.008 260);
+  --text: oklch(0.15 0.01 260);
+  --text-muted: oklch(0.38 0.015 260);
+  --primary: oklch(0.52 0.18 230);
+  --accent: oklch(0.52 0.17 160);
+  --warning: oklch(0.65 0.18 80);
+  --danger: oklch(0.55 0.22 25);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Inter','Noto Sans SC',system-ui,sans-serif;background:oklch(0.97 0.005 260);color:oklch(0.15 0.01 260);-webkit-font-smoothing:antialiased;min-height:100vh}
+::selection{background:oklch(0.52 0.18 230 / 0.25)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:oklch(0.88 0.008 260);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:oklch(0.78 0.008 260)}
+.card{background:#fff;border:1px solid oklch(0.91 0.008 260);border-radius:0.75rem;transition:all 200ms ease}
+.card:hover{border-color:oklch(0.82 0.01 260);box-shadow:0 1px 3px oklch(0 0 0/0.06),0 4px 16px oklch(0 0 0/0.04)}
+.page{display:none;animation:fadeIn 0.35s ease-out}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.tab-btn{position:relative;transition:all 150ms}
+.tab-btn::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:oklch(0.52 0.18 230);border-radius:1px 1px 0 0;transform:scaleX(0);transition:transform 200ms ease}
+.tab-btn.active::after,.tab-btn:hover::after{transform:scaleX(1)}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:oklch(0.52 0.17 160)}
+.pulse-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;background:oklch(0.52 0.17 160/0.3);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(2);opacity:0}}
+.back-btn{display:inline-flex;align-items:center;gap:0.25rem;color:oklch(0.38 0.015 260);font-size:0.875rem;font-weight:500;cursor:pointer;transition:color 150ms;border:none;background:none;padding:0}
+.back-btn:hover{color:oklch(0.52 0.18 230)}
+.breadcrumb{display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;color:oklch(0.52 0.015 260)}
+.breadcrumb span{color:oklch(0.52 0.18 230)}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ===== HEADER ===== -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-sm">
+  <div class="max-w-screen-2xl mx-auto px-6 h-16 flex items-center gap-6">
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-extrabold text-base" style="background:linear-gradient(135deg,oklch(0.52 0.18 230),oklch(0.55 0.16 200))">智</div>
+      <span class="font-bold text-lg tracking-tight text-slate-800">智览</span>
+      <span class="text-xs font-semibold px-2 py-0.5 rounded-full border border-slate-200 text-slate-500">v1.0</span>
+    </div>
+
+    <nav class="flex items-center gap-1 h-full" id="topNav">
+      <button class="tab-btn active h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-700" data-page="dashboard">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>工作台
+      </button>
+      <button class="tab-btn h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-500 hover:text-slate-700" data-page="briefs">
+        <i data-lucide="newspaper" class="w-4 h-4"></i>每日简报
+      </button>
+      <button class="tab-btn h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-500 hover:text-slate-700" data-page="reports-list">
+        <i data-lucide="file-text" class="w-4 h-4"></i>研报中心
+      </button>
+      <button class="tab-btn h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-500 hover:text-slate-700" data-page="clusters">
+        <i data-lucide="git-branch" class="w-4 h-4"></i>聚类分析
+      </button>
+      <button class="tab-btn h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-500 hover:text-slate-700" data-page="monitor">
+        <i data-lucide="activity" class="w-4 h-4"></i>实时监控
+      </button>
+      <button class="tab-btn h-full flex items-center gap-2 px-4 text-sm font-medium text-slate-500 hover:text-slate-700" data-page="settings">
+        <i data-lucide="settings" class="w-4 h-4"></i>系统配置
+      </button>
+    </nav>
+
+    <div class="flex-1"></div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium" style="background:oklch(0.52 0.17 160 / 0.08);color:oklch(0.52 0.17 160)">
+        <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:oklch(0.52 0.17 160)"></span><span class="relative inline-flex rounded-full h-2 w-2" style="background:oklch(0.52 0.17 160)"></span></span>
+        系统运行中
+      </div>
+      <div class="relative">
+        <i data-lucide="bell" class="w-5 h-5 text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"></i>
+        <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">3</span>
+      </div>
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm cursor-pointer" style="background:linear-gradient(135deg,oklch(0.52 0.18 230),oklch(0.55 0.17 180))">李</div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="pt-16">
+  <div class="max-w-screen-2xl mx-auto px-6 py-6">
+
+    <!-- ==================== PAGE 1: DASHBOARD ==================== -->
+    <div class="page active" id="page-dashboard">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-800">工作台概览</h1>
+        <p class="text-sm text-slate-500 mt-0.5">今日数据处理状态与关键指标一览</p>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:oklch(0.52 0.18 230/0.1)"><i data-lucide="rss" class="w-5 h-5" style="color:oklch(0.52 0.18 230)"></i></div>
+            <div><p class="text-xs text-slate-500">今日采集</p><p class="text-2xl font-bold text-slate-800">1,234</p></div>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-medium" style="color:oklch(0.52 0.17 160)"><i data-lucide="trending-up" class="w-3 h-3"></i>较昨日 +12.5%</div>
+        </div>
+        <div class="card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:oklch(0.55 0.20 30/0.1)"><i data-lucide="filter" class="w-5 h-5" style="color:oklch(0.55 0.20 30)"></i></div>
+            <div><p class="text-xs text-slate-500">今日去重</p><p class="text-2xl font-bold text-slate-800">856</p></div>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-medium" style="color:oklch(0.55 0.22 25)"><i data-lucide="arrow-down" class="w-3 h-3"></i>去重率 30.6%</div>
+        </div>
+        <div class="card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:oklch(0.52 0.17 160/0.1)"><i data-lucide="file-check" class="w-5 h-5" style="color:oklch(0.52 0.17 160)"></i></div>
+            <div><p class="text-xs text-slate-500">生成研报</p><p class="text-2xl font-bold text-slate-800">12</p></div>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-medium" style="color:oklch(0.52 0.17 160)"><i data-lucide="check-circle" class="w-3 h-3"></i>通过率 91.7%</div>
+        </div>
+        <div class="card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:oklch(0.65 0.18 80/0.1)"><i data-lucide="send" class="w-5 h-5" style="color:oklch(0.65 0.18 80)"></i></div>
+            <div><p class="text-xs text-slate-500">推送次数</p><p class="text-2xl font-bold text-slate-800">4</p></div>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-medium text-slate-400"><i data-lucide="clock" class="w-3 h-3"></i>最近 10分钟前</div>
+        </div>
+      </div>
+
+      <!-- Mid Section -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="star" class="w-4 h-4" style="color:oklch(0.65 0.18 80)"></i>今日要闻 TOP5</h2>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style="background:oklch(0.55 0.22 25)">1</span>
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">央行宣布降准0.5个百分点，释放长期流动性1万亿</p><p class="text-xs text-slate-400 mt-0.5">30分钟前 · 宏观经济</p></div>
+            </div>
+            <div class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style="background:oklch(0.55 0.20 30)">2</span>
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">AI大模型监管新规出台，明确训练数据合规要求</p><p class="text-xs text-slate-400 mt-0.5">1小时前 · 科技政策</p></div>
+            </div>
+            <div class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style="background:oklch(0.65 0.18 80)">3</span>
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">新能源车企Q2财报密集发布，多家实现扭亏为盈</p><p class="text-xs text-slate-400 mt-0.5">2小时前 · 汽车产业</p></div>
+            </div>
+            <div class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style="background:oklch(0.52 0.18 230)">4</span>
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">美联储维持利率不变，暗示9月可能开启降息周期</p><p class="text-xs text-slate-400 mt-0.5">3小时前 · 国际金融</p></div>
+            </div>
+            <div class="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white" style="background:oklch(0.52 0.17 160)">5</span>
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">半导体出口管制再度升级，产业链加速自主替代</p><p class="text-xs text-slate-400 mt-0.5">4小时前 · 半导体</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4" style="color:oklch(0.52 0.18 230)"></i>采集趋势 (近7日)</h2>
+          <div id="trendChart" style="width:100%;height:250px"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Section -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4" style="color:oklch(0.52 0.18 230)"></i>最新研报</h2>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">央行降准政策影响深度分析</p><p class="text-xs text-slate-400">背景 · 现状 · 趋势 · 风险</p></div>
+              <span class="text-xs text-slate-400 shrink-0 ml-3">2h前</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">AI监管新规：全球政策对比与行业影响</p><p class="text-xs text-slate-400">背景 · 现状 · 趋势 · 风险</p></div>
+              <span class="text-xs text-slate-400 shrink-0 ml-3">4h前</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+              <div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">新能源汽车Q2财报综合分析</p><p class="text-xs text-slate-400">背景 · 现状 · 趋势 · 风险</p></div>
+              <span class="text-xs text-slate-400 shrink-0 ml-3">6h前</span>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="workflow" class="w-4 h-4" style="color:oklch(0.52 0.17 160)"></i>工作流状态</h2>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 p-2.5 rounded-lg" style="background:oklch(0.52 0.17 160/0.04)">
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style="background:oklch(0.52 0.17 160);color:#fff">✓</div>
+              <span class="text-sm font-medium text-slate-700">采集</span><span class="text-sm text-slate-500">→</span>
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style="background:oklch(0.52 0.17 160);color:#fff">✓</div>
+              <span class="text-sm font-medium text-slate-700">去重</span><span class="text-sm text-slate-500">→</span>
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style="background:oklch(0.52 0.17 160);color:#fff">✓</div>
+              <span class="text-sm font-medium text-slate-700">聚类</span>
+            </div>
+            <div class="flex items-center gap-3 p-2.5 rounded-lg" style="background:oklch(0.65 0.18 80/0.04)">
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style="background:oklch(0.65 0.18 80);color:#fff">⟳</div>
+              <span class="text-sm font-medium text-slate-700">摘要</span><span class="text-sm text-slate-500">→</span>
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border-2 border-dashed" style="border-color:oklch(0.82 0.01 260);color:oklch(0.55 0.01 260)">⏳</div>
+              <span class="text-sm text-slate-500">审核</span><span class="text-sm text-slate-500">→</span>
+              <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border-2 border-dashed" style="border-color:oklch(0.82 0.01 260);color:oklch(0.55 0.01 260)">⏳</div>
+              <span class="text-sm text-slate-500">推送</span>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg" style="background:oklch(0.52 0.18 230/0.04)">
+            <div class="flex justify-between text-xs mb-1"><span class="font-medium text-slate-700">当前摘要生成进度</span><span class="text-slate-500">67%</span></div>
+            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all duration-700" style="width:67%;background:linear-gradient(90deg,oklch(0.52 0.18 230),oklch(0.55 0.16 200))"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 2: BRIEFS ==================== -->
+    <div class="page" id="page-briefs">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">每日简报</h1>
+          <p class="text-sm text-slate-500 mt-0.5">结构化日报，涵盖要闻、研报、行业动态与数据看板</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
+            <button class="p-1 hover:bg-slate-100 rounded transition-colors"><i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i></button>
+            <span class="text-sm font-semibold text-slate-700">2026-08-04</span>
+            <button class="p-1 hover:bg-slate-100 rounded transition-colors"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i></button>
+            <i data-lucide="calendar" class="w-4 h-4 text-slate-400 ml-1"></i>
+          </div>
+          <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"><i data-lucide="download" class="w-4 h-4"></i>下载PDF</button>
+          <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"><i data-lucide="file-down" class="w-4 h-4"></i>下载Markdown</button>
+        </div>
+      </div>
+
+      <!-- TOP5 -->
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="flame" class="w-4 h-4" style="color:oklch(0.55 0.22 25)"></i>今日要闻 TOP5</h2>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background:oklch(0.55 0.22 25)">1</span>
+              <div class="min-w-0"><span class="text-sm font-medium text-slate-800">央行宣布降准0.5个百分点</span><span class="text-xs text-slate-400 ml-2">释放长期流动性约1万亿元，旨在支持实体经济发展</span></div>
+            </div>
+            <button class="text-xs font-medium shrink-0 ml-3 px-2 py-1 rounded hover:bg-slate-100 transition-colors" style="color:oklch(0.52 0.18 230)">展开详情</button>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background:oklch(0.55 0.20 30)">2</span>
+              <div class="min-w-0"><span class="text-sm font-medium text-slate-800">AI大模型监管新规出台</span><span class="text-xs text-slate-400 ml-2">明确训练数据合规红线，设置分级分类监管框架</span></div>
+            </div>
+            <button class="text-xs font-medium shrink-0 ml-3 px-2 py-1 rounded hover:bg-slate-100 transition-colors" style="color:oklch(0.52 0.18 230)">展开详情</button>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background:oklch(0.65 0.18 80)">3</span>
+              <div class="min-w-0"><span class="text-sm font-medium text-slate-800">新能源车企Q2密集盈利</span><span class="text-xs text-slate-400 ml-2">多家造车新势力实现季度盈利，行业拐点显现</span></div>
+            </div>
+            <button class="text-xs font-medium shrink-0 ml-3 px-2 py-1 rounded hover:bg-slate-100 transition-colors" style="color:oklch(0.52 0.18 230)">展开详情</button>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background:oklch(0.52 0.18 230)">4</span>
+              <div class="min-w-0"><span class="text-sm font-medium text-slate-800">美联储按兵不动暗示降息</span><span class="text-xs text-slate-400 ml-2">维持5.25%-5.5%利率区间，主席鲍威尔释放鸽派信号</span></div>
+            </div>
+            <button class="text-xs font-medium shrink-0 ml-3 px-2 py-1 rounded hover:bg-slate-100 transition-colors" style="color:oklch(0.52 0.18 230)">展开详情</button>
+          </div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background:oklch(0.52 0.17 160)">5</span>
+              <div class="min-w-0"><span class="text-sm font-medium text-slate-800">半导体出口管制再度升级</span><span class="text-xs text-slate-400 ml-2">产业链加速国产替代进程，设备材料成关键突破口</span></div>
+            </div>
+            <button class="text-xs font-medium shrink-0 ml-3 px-2 py-1 rounded hover:bg-slate-100 transition-colors" style="color:oklch(0.52 0.18 230)">展开详情</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Cards -->
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">深度研报</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+            <h3 class="font-semibold text-slate-800 mb-2">央行降准政策影响深度分析</h3>
+            <div class="flex gap-2 mb-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-3 line-clamp-2">央行降准将释放约1万亿长期流动性，对银行间利率、地产市场及A股走势产生深远影响...</p>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-400">来源: 23篇文章 · 今天 14:30</span>
+              <button class="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors" style="background:oklch(0.52 0.18 230)">阅读全文</button>
+            </div>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+            <h3 class="font-semibold text-slate-800 mb-2">AI监管新规：全球政策对比</h3>
+            <div class="flex gap-2 mb-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-3 line-clamp-2">对比欧盟AI法案、美国AI行政令与中国最新监管框架，分析对科技产业的差异化影响...</p>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-400">来源: 15篇文章 · 今天 12:00</span>
+              <button class="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors" style="background:oklch(0.52 0.18 230)">阅读全文</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Industry Snapshot + Data Dashboard -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4">行业动态速览</h2>
+          <div class="space-y-3">
+            <div class="p-3 rounded-lg bg-slate-50">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 mr-2">金融</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">降准落地</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">银行净息差收窄</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600">保险资金入市</span>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-50">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-600 mr-2">科技</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">AI大模型</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">6G研发</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600">量子计算</span>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-50">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 mr-2">能源</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">光伏出口</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">储能政策</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600">碳交易扩容</span>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-50">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 mr-2">医药</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600 mr-2">创新药出海</span>
+              <span class="text-xs text-slate-600 cursor-pointer hover:text-blue-600">集采续约</span>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4">数据看板</h2>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-4 rounded-xl text-center border" style="background:oklch(0.52 0.17 160/0.04);border-color:oklch(0.52 0.17 160/0.15)">
+              <p class="text-xs text-slate-500 mb-1">情绪指数</p>
+              <p class="text-3xl font-extrabold" style="color:oklch(0.52 0.17 160)">72</p>
+              <p class="text-xs text-slate-400">/100</p>
+              <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-2" style="background:oklch(0.52 0.17 160/0.1);color:oklch(0.52 0.17 160)">▲ 偏乐观</span>
+            </div>
+            <div class="p-4 rounded-xl text-center border" style="background:oklch(0.55 0.20 30/0.04);border-color:oklch(0.55 0.20 30/0.15)">
+              <p class="text-xs text-slate-500 mb-1">热度指数</p>
+              <p class="text-3xl font-extrabold" style="color:oklch(0.55 0.20 30)">85</p>
+              <p class="text-xs text-slate-400">/100</p>
+              <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-2" style="background:oklch(0.55 0.20 30/0.1);color:oklch(0.55 0.20 30)">▲ 高</span>
+            </div>
+            <div class="p-4 rounded-xl text-center border" style="background:oklch(0.52 0.18 230/0.04);border-color:oklch(0.52 0.18 230/0.15)">
+              <p class="text-xs text-slate-500 mb-1">波动指数</p>
+              <p class="text-3xl font-extrabold" style="color:oklch(0.52 0.18 230)">45</p>
+              <p class="text-xs text-slate-400">/100</p>
+              <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-2" style="background:oklch(0.52 0.18 230/0.1);color:oklch(0.52 0.18 230)">▼ 低</span>
+            </div>
+          </div>
+          <div id="sentimentChart" style="width:100%;height:180px;margin-top:1rem"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 2b: BRIEF DETAIL ==================== -->
+    <div class="page" id="page-brief-detail">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-1"><button class="back-btn" onclick="goBack()"><i data-lucide="arrow-left" class="w-4 h-4"></i>返回简报</button><span class="text-xs text-slate-300">|</span><span class="text-xs text-slate-500">2026-08-04</span></div>
+          <h1 class="text-2xl font-bold text-slate-800" id="brief-detail-title">央行宣布降准0.5个百分点</h1>
+          <p class="text-sm text-slate-500 mt-0.5" id="brief-detail-meta">发布时间: 2026-08-04 09:30 · 来源: 23篇相关报道 · 聚类主题: 宏观经济政策</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i>分享</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="card p-4 text-center"><p class="text-xs text-slate-500 mb-1">重要性</p><div class="flex justify-center gap-0.5"><span class="text-yellow-400 text-sm">⭐</span><span class="text-yellow-400 text-sm">⭐</span><span class="text-yellow-400 text-sm">⭐</span><span class="text-yellow-400 text-sm">⭐</span><span class="text-yellow-400 text-sm">⭐</span></div></div>
+        <div class="card p-4 text-center"><p class="text-xs text-slate-500 mb-1">关联文章</p><p class="text-xl font-bold text-slate-800">23<span class="text-xs font-normal text-slate-400">篇</span></p></div>
+        <div class="card p-4 text-center"><p class="text-xs text-slate-500 mb-1">相关研报</p><p class="text-xl font-bold text-slate-800">2<span class="text-xs font-normal text-slate-400">篇</span></p></div>
+      </div>
+      <div class="card p-6 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4" style="color:oklch(0.52 0.18 230)"></i>新闻正文</h2>
+        <div class="text-sm text-slate-600 leading-relaxed space-y-3">
+          <p>中国人民银行决定于2026年8月4日起下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构）。本次下调后，金融机构加权平均存款准备金率约为6.5%，预计释放长期流动性约1万亿元。</p>
+          <p>央行表示，此举旨在保持银行体系流动性合理充裕，引导金融机构加大对实体经济的支持力度，促进综合融资成本稳中有降。此次降准是继2024年以来的第三次全面降准，体现了货币政策逆周期调节的力度。</p>
+          <p>市场分析人士认为，降准将降低银行负债成本，释放更多可贷资金，有助于支持制造业、小微企业和绿色金融等重点领域。同时，降准信号也有利于稳定市场预期，增强投资者信心。</p>
+        </div>
+      </div>
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="newspaper" class="w-4 h-4" style="color:oklch(0.52 0.17 160)"></i>相关报道 (23篇)</h2>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><span class="text-sm text-slate-700">中国人民银行 — 关于下调存款准备金率的通知</span><span class="text-xs text-slate-400">官方发布</span></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><span class="text-sm text-slate-700">新华社 — 央行降准0.5个百分点，释放万亿流动性</span><span class="text-xs text-slate-400">09:45</span></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><span class="text-sm text-slate-700">新浪财经 — 降准落地，A股三大指数集体高开</span><span class="text-xs text-slate-400">10:15</span></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><span class="text-sm text-slate-700">东方财富 — 机构解读：降准利好银行、地产板块</span><span class="text-xs text-slate-400">11:00</span></div>
+        </div>
+      </div>
+      <div class="card p-5">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="file-check" class="w-4 h-4" style="color:oklch(0.55 0.20 30)"></i>关联研报</h2>
+        <div class="space-y-2">
+          <div class="p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors" onclick="navigateTo('report-detail',0)"><p class="text-sm font-medium text-slate-800">央行降准政策影响深度分析</p><p class="text-xs text-slate-400 mt-0.5">四段式结构化研报 · 今天 14:30生成</p></div>
+          <div class="p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors" onclick="navigateTo('report-detail',3)"><p class="text-sm font-medium text-slate-800">美联储利率决策与全球资本市场影响</p><p class="text-xs text-slate-400 mt-0.5">四段式结构化研报 · 昨天 16:45生成</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 3: REPORTS LIST ==================== -->
+    <div class="page" id="page-reports-list">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-800">研报中心</h1>
+        <p class="text-sm text-slate-500 mt-0.5">AI生成的深度结构化研报，涵盖背景、现状、趋势与风险分析</p>
+      </div>
+      <div class="flex items-center gap-3 mb-4">
+        <div class="relative flex-1 max-w-sm">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" placeholder="搜索研报标题或关键词..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+        </div>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100"><option>全部时间</option><option>今天</option><option>近7天</option><option>近30天</option></select>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100"><option>全部主题</option><option>宏观经济</option><option>科技</option><option>能源</option><option>金融</option></select>
+      </div>
+      <div class="space-y-3">
+        <div class="card p-5 cursor-pointer hover:shadow-md" onclick="navigateTo('report-detail',0)">
+          <div class="flex items-start justify-between mb-2"><h2 class="font-semibold text-slate-800">央行降准政策影响深度分析</h2><span class="text-xs text-slate-400 shrink-0 ml-3">今天 14:30</span></div>
+          <div class="flex gap-2 mb-2"><span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span><span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span><span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span><span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span></div>
+          <p class="text-xs text-slate-500 line-clamp-2 mb-2">央行降准将释放约1万亿长期流动性，对银行间利率、地产市场及A股走势产生深远影响。分析认为货币政策延续宽松基调...</p>
+          <div class="flex items-center gap-4 text-xs text-slate-400"><span>来源: 23篇文章</span><span>通过率: 91.7%</span><span class="text-slate-500" style="color:oklch(0.52 0.18 230)">阅读全文 →</span></div>
+        </div>
+        <div class="card p-5 cursor-pointer hover:shadow-md" onclick="navigateTo('report-detail',1)">
+          <div class="flex items-start justify-between mb-2"><h2 class="font-semibold text-slate-800">AI监管新规：全球政策对比与行业影响</h2><span class="text-xs text-slate-400 shrink-0 ml-3">今天 12:00</span></div>
+          <div class="flex gap-2 mb-2"><span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span><span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span><span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span><span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span></div>
+          <p class="text-xs text-slate-500 line-clamp-2 mb-2">对比欧盟AI法案、美国AI行政令与中国最新监管框架，深入分析对科技产业的差异化影响及合规建议...</p>
+          <div class="flex items-center gap-4 text-xs text-slate-400"><span>来源: 15篇文章</span><span>通过率: 88.2%</span><span class="text-slate-500" style="color:oklch(0.52 0.18 230)">阅读全文 →</span></div>
+        </div>
+        <div class="card p-5 cursor-pointer hover:shadow-md" onclick="navigateTo('report-detail',2)">
+          <div class="flex items-start justify-between mb-2"><h2 class="font-semibold text-slate-800">新能源汽车Q2财报综合分析</h2><span class="text-xs text-slate-400 shrink-0 ml-3">今天 10:15</span></div>
+          <div class="flex gap-2 mb-2"><span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span><span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span><span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span><span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span></div>
+          <p class="text-xs text-slate-500 line-clamp-2 mb-2">多家造车新势力Q2实现季度盈利，行业拐点显现。分析各车企交付量、毛利结构及下半年展望...</p>
+          <div class="flex items-center gap-4 text-xs text-slate-400"><span>来源: 18篇文章</span><span>通过率: 93.5%</span><span class="text-slate-500" style="color:oklch(0.52 0.18 230)">阅读全文 →</span></div>
+        </div>
+        <div class="card p-5 cursor-pointer hover:shadow-md" onclick="navigateTo('report-detail',3)">
+          <div class="flex items-start justify-between mb-2"><h2 class="font-semibold text-slate-800">美联储利率决策与全球资本市场影响</h2><span class="text-xs text-slate-400 shrink-0 ml-3">昨天 16:45</span></div>
+          <div class="flex gap-2 mb-2"><span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">背景</span><span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">现状</span><span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">趋势</span><span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">风险</span></div>
+          <p class="text-xs text-slate-500 line-clamp-2 mb-2">美联储维持利率5.25%-5.5%不变，鲍威尔释放鸽派信号，暗示9月可能开启降息周期...</p>
+          <div class="flex items-center gap-4 text-xs text-slate-400"><span>来源: 28篇文章</span><span>通过率: 90.1%</span><span class="text-slate-500" style="color:oklch(0.52 0.18 230)">阅读全文 →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 3b: REPORT DETAIL ==================== -->
+    <div class="page" id="page-report-detail">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-1"><button class="back-btn" onclick="goBack()"><i data-lucide="arrow-left" class="w-4 h-4"></i>返回列表</button></div>
+          <h1 class="text-2xl font-bold text-slate-800" id="report-detail-title">央行降准政策影响深度分析</h1>
+          <p class="text-sm text-slate-500 mt-0.5" id="report-detail-meta">生成时间: 2026-08-04 14:30 · 信息来源: 23篇文章</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"><i data-lucide="download" class="w-4 h-4"></i>导出PDF</button>
+          <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i>分享</button>
+        </div>
+      </div>
+      <div class="space-y-4" id="report-detail-content">
+        <div class="card p-6">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.52 0.18 230)">一</span>事件背景</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mb-4">中国人民银行决定于2026年8月4日起下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构）。本次下调后，金融机构加权平均存款准备金率约为6.5%，预计释放长期流动性约1万亿元。这是继2024年以来央行第三次降准，货币政策延续宽松基调，旨在加大对实体经济的金融支持力度。</p>
+          <div class="flex items-center gap-2 text-xs"><span class="text-slate-400">引用来源:</span><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">[1] 中国人民银行官网</span><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">[2] 新华社</span><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">[3] 新浪财经</span></div>
+        </div>
+        <div class="card p-6">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.52 0.17 160)">二</span>现状分析</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mb-4">当前银行体系流动性合理充裕，但实体经济融资需求仍显疲弱。8月初银行间市场DR007加权平均利率为1.68%，较上月下降5BP。信贷数据方面，7月新增人民币贷款1.2万亿元，同比少增800亿元，企业中长期贷款增长放缓，居民贷款结构持续优化。</p>
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50"><h4 class="text-xs font-semibold text-slate-500 mb-2">关键数据</h4><div class="grid grid-cols-3 gap-4"><div><p class="text-xs text-slate-400">DR007利率</p><p class="text-lg font-bold text-slate-800">1.68%<span class="text-xs ml-1" style="color:oklch(0.52 0.17 160)">▼5BP</span></p></div><div><p class="text-xs text-slate-400">7月新增贷款</p><p class="text-lg font-bold text-slate-800">1.2万亿<span class="text-xs ml-1" style="color:oklch(0.55 0.22 25)">▼6.2%</span></p></div><div><p class="text-xs text-slate-400">LPR 1年期</p><p class="text-lg font-bold text-slate-800">3.35%<span class="text-xs ml-1 text-slate-400">持平</span></p></div></div></div>
+        </div>
+        <div class="card p-6">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.65 0.18 80)">三</span>趋势研判</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mb-3"><strong class="text-slate-700">短期（1-3个月）：</strong>降准落地后银行间利率中枢有望进一步下移，DR007或在1.5%-1.7%区间波动。A股金融板块短期利好，但后续需观察实体信贷需求能否有效回升。</p>
+          <p class="text-sm text-slate-600 leading-relaxed"><strong class="text-slate-700">中长期（6-12个月）：</strong>若经济复苏动能持续偏弱，不排除四季度继续降准的可能性。人民币汇率方面，中美利差收窄可能带来短期贬值压力，但央行有充足工具维护汇率稳定。</p>
+        </div>
+        <div class="card p-6">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.55 0.22 25)">四</span>风险提示</h2>
+          <div class="space-y-3"><div class="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5" style="color:oklch(0.55 0.22 25)"></i><div><p class="text-sm font-medium text-slate-800">政策传导不及预期风险</p><p class="text-xs text-slate-500 mt-0.5">降准释放的流动性可能在银行体系内沉淀，未能有效传导至实体经济</p></div></div><div class="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5" style="color:oklch(0.55 0.20 30)"></i><div><p class="text-sm font-medium text-slate-800">汇率波动风险</p><p class="text-xs text-slate-500 mt-0.5">中美货币政策分化加剧可能导致人民币阶段性承压</p></div></div></div>
+        </div>
+        <div class="card p-6"><h2 class="text-sm font-semibold text-slate-800 mb-4">信息来源</h2><div class="space-y-2"><div class="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-50"><span class="text-slate-600">[1] 中国人民银行 — 关于下调存款准备金率的通知</span><span class="text-xs text-slate-400">2026-08-04</span></div><div class="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-50"><span class="text-slate-600">[2] 新华社 — 央行降准0.5个百分点释放流动性</span><span class="text-xs text-slate-400">2026-08-04</span></div><div class="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-50"><span class="text-slate-600">[3] 新浪财经 — 多家机构解读央行降准影响</span><span class="text-xs text-slate-400">2026-08-04</span></div></div></div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 4: CLUSTERS ==================== -->
+    <div class="page" id="page-clusters">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">聚类分析</h1>
+          <p class="text-sm text-slate-500 mt-0.5">新闻主题簇可视化与语义关系分析</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            <option>全部主题</option><option>宏观经济</option><option>科技</option><option>能源</option><option>金融</option>
+          </select>
+          <select class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            <option>今日</option><option>近3天</option><option>近7天</option>
+          </select>
+          <select class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100">
+            <option>按重要性排序</option><option>按时间排序</option><option>按文章数排序</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cluster Graph -->
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-1">聚类关系图</h2>
+        <p class="text-xs text-slate-400 mb-4">力导向图展示主题簇之间的语义关联</p>
+        <div id="clusterGraph" style="width:100%;height:350px"></div>
+      </div>
+
+      <!-- Cluster List -->
+      <div class="card p-5">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">主题簇列表</h2>
+        <div class="space-y-3">
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-3">
+                <span class="text-lg">📌</span>
+                <div><h3 class="font-semibold text-slate-800">AI监管政策动向</h3><p class="text-xs text-slate-400">相关文章: 23篇 · 时间跨度: 3天</p></div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">欧盟AI法案</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">美国回应</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">中国表态</span>
+            </div>
+            <button class="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors" style="background:oklch(0.52 0.18 230)">查看详情</button>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-3">
+                <span class="text-lg">📌</span>
+                <div><h3 class="font-semibold text-slate-800">半导体供应链变化</h3><p class="text-xs text-slate-400">相关文章: 15篇 · 时间跨度: 5天</p></div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-slate-300">☆</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">出口管制</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">国产替代</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-100">设备突破</span>
+            </div>
+            <button class="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors" style="background:oklch(0.52 0.18 230)">查看详情</button>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-3">
+                <span class="text-lg">📌</span>
+                <div><h3 class="font-semibold text-slate-800">中美贸易关系动态</h3><p class="text-xs text-slate-400">相关文章: 18篇 · 时间跨度: 4天</p></div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-slate-300">☆</span><span class="text-slate-300">☆</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">关税谈判</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100">科技脱钩</span>
+              <span class="text-xs text-slate-300">→</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">供应链重构</span>
+            </div>
+            <button class="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors" style="background:oklch(0.52 0.18 230)">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 4b: CLUSTER DETAIL ==================== -->
+    <div class="page" id="page-cluster-detail">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-1"><button class="back-btn" onclick="goBack()"><i data-lucide="arrow-left" class="w-4 h-4"></i>返回聚类分析</button></div>
+          <h1 class="text-2xl font-bold text-slate-800" id="cluster-detail-title">AI监管政策动向</h1>
+          <p class="text-sm text-slate-500 mt-0.5" id="cluster-detail-meta">主题标签: 科技政策 · 相关文章: 23篇 · 时间跨度: 3天</p>
+        </div>
+        <div class="flex items-center gap-2"><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-yellow-400">⭐</span><span class="text-xs text-slate-400 ml-1">重要性 5/5</span></div>
+      </div>
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">事件时间线</h2>
+        <div class="relative pl-6 border-l-2 border-blue-100 space-y-5">
+          <div class="relative"><div class="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-blue-300 top-0.5"></div><p class="text-xs text-slate-400 mb-1">2026-08-04 14:30</p><p class="text-sm font-medium text-slate-700">中国网信办发布AI大模型监管新规</p><p class="text-xs text-slate-500 mt-0.5">明确训练数据合规要求，设置分级分类监管框架</p></div>
+          <div class="relative"><div class="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-blue-300 top-0.5"></div><p class="text-xs text-slate-400 mb-1">2026-08-03 16:00</p><p class="text-sm font-medium text-slate-700">美国白宫回应中国AI监管政策</p><p class="text-xs text-slate-500 mt-0.5">表示将持续关注中国在AI治理领域的进展</p></div>
+          <div class="relative"><div class="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-blue-300 top-0.5"></div><p class="text-xs text-slate-400 mb-1">2026-08-02 10:00</p><p class="text-sm font-medium text-slate-700">欧盟AI法案正式生效实施</p><p class="text-xs text-slate-500 mt-0.5">全球首部全面监管AI的法律正式执行</p></div>
+          <div class="relative"><div class="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-slate-200 top-0.5"></div><p class="text-xs text-slate-400 mb-1">2026-08-01 08:30</p><p class="text-sm font-medium text-slate-700">多家科技巨头发布AI合规白皮书</p><p class="text-xs text-slate-500 mt-0.5">微软、谷歌等公司主动释放合规信号</p></div>
+        </div>
+      </div>
+      <div class="card p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">文章列表 (23篇)</h2>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">中国发布AI大模型监管新规 设置合规红线</p><p class="text-xs text-slate-400">新华网 · 2026-08-04</p></div><i data-lucide="external-link" class="w-4 h-4 text-slate-400 shrink-0 ml-3"></i></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">AI监管框架落地 科技企业加速合规建设</p><p class="text-xs text-slate-400">第一财经 · 2026-08-04</p></div><i data-lucide="external-link" class="w-4 h-4 text-slate-400 shrink-0 ml-3"></i></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">欧盟AI法案vs中国新规：全球AI治理格局变化</p><p class="text-xs text-slate-400">财新 · 2026-08-04</p></div><i data-lucide="external-link" class="w-4 h-4 text-slate-400 shrink-0 ml-3"></i></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">美国关注中国AI监管 或调整对华科技政策</p><p class="text-xs text-slate-400">路透社 · 2026-08-03</p></div><i data-lucide="external-link" class="w-4 h-4 text-slate-400 shrink-0 ml-3"></i></div>
+          <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-slate-100"><div class="min-w-0"><p class="text-sm font-medium text-slate-800 truncate">微软、谷歌等发布AI合规白皮书</p><p class="text-xs text-slate-400">科技日报 · 2026-08-01</p></div><i data-lucide="external-link" class="w-4 h-4 text-slate-400 shrink-0 ml-3"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 5: MONITOR ==================== -->
+    <div class="page" id="page-monitor">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">实时监控</h1>
+          <p class="text-sm text-slate-500 mt-0.5">工作流管道、Agent状态与系统指标实时展示</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:oklch(0.52 0.17 160)"></span>系统运行中</span>
+          <span class="text-slate-300">|</span>
+          <span class="text-slate-500">上次采集: 10分钟前</span>
+          <span class="text-slate-300">|</span>
+          <span class="text-slate-500">下次采集: 1h50min后</span>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="card p-6 mb-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">工作流管道视图</h2>
+        <div class="flex items-center gap-2 justify-center flex-wrap">
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style="background:oklch(0.52 0.17 160/0.1);border:2px solid oklch(0.52 0.17 160/0.3)"><i data-lucide="check-circle" class="w-7 h-7" style="color:oklch(0.52 0.17 160)"></i></div>
+            <p class="text-xs font-semibold text-slate-700">采集</p><p class="text-[11px]" style="color:oklch(0.52 0.17 160)">✅ 1234篇</p>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style="background:oklch(0.52 0.17 160/0.1);border:2px solid oklch(0.52 0.17 160/0.3)"><i data-lucide="check-circle" class="w-7 h-7" style="color:oklch(0.52 0.17 160)"></i></div>
+            <p class="text-xs font-semibold text-slate-700">预处理</p><p class="text-[11px]" style="color:oklch(0.52 0.17 160)">✅ 1180篇</p>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style="background:oklch(0.52 0.17 160/0.1);border:2px solid oklch(0.52 0.17 160/0.3)"><i data-lucide="check-circle" class="w-7 h-7" style="color:oklch(0.52 0.17 160)"></i></div>
+            <p class="text-xs font-semibold text-slate-700">去重</p><p class="text-[11px]" style="color:oklch(0.52 0.17 160)">✅ 856篇</p>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style="background:oklch(0.52 0.17 160/0.1);border:2px solid oklch(0.52 0.17 160/0.3)"><i data-lucide="check-circle" class="w-7 h-7" style="color:oklch(0.52 0.17 160)"></i></div>
+            <p class="text-xs font-semibold text-slate-700">聚类</p><p class="text-[11px]" style="color:oklch(0.52 0.17 160)">✅ 42簇</p>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style="background:oklch(0.65 0.18 80/0.1);border:2px solid oklch(0.65 0.18 80/0.3);animation:pulse 2s infinite"><i data-lucide="loader" class="w-7 h-7 animate-spin" style="color:oklch(0.65 0.18 80)"></i></div>
+            <p class="text-xs font-semibold text-slate-700">摘要</p><p class="text-[11px]" style="color:oklch(0.65 0.18 80)">🔄 67%</p>
+            <div class="w-12 h-1.5 rounded-full bg-slate-100 mx-auto mt-1 overflow-hidden"><div class="h-full rounded-full" style="width:67%;background:linear-gradient(90deg,oklch(0.65 0.18 80),oklch(0.55 0.20 30))"></div></div>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 border-2 border-dashed" style="border-color:oklch(0.88 0.008 260)"><i data-lucide="clock" class="w-7 h-7 text-slate-300"></i></div>
+            <p class="text-xs font-semibold text-slate-500">审核</p><p class="text-[11px] text-slate-400">⏳ 等待中</p>
+          </div>
+          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 border-2 border-dashed" style="border-color:oklch(0.88 0.008 260)"><i data-lucide="clock" class="w-7 h-7 text-slate-300"></i></div>
+            <p class="text-xs font-semibold text-slate-500">推送</p><p class="text-[11px] text-slate-400">⏳ 等待中</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Status + Logs -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4">Agent 状态</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-lg border" style="background:oklch(0.52 0.17 160/0.03);border-color:oklch(0.52 0.17 160/0.15)">
+              <div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold text-slate-700">CollectorAgent</span><span class="w-2 h-2 rounded-full" style="background:oklch(0.52 0.17 160)"></span></div>
+              <p class="text-[11px] text-slate-500">已处理: 1,234篇</p>
+              <p class="text-xs font-medium" style="color:oklch(0.52 0.17 160)">✅ 就绪</p>
+            </div>
+            <div class="p-3 rounded-lg border" style="background:oklch(0.52 0.17 160/0.03);border-color:oklch(0.52 0.17 160/0.15)">
+              <div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold text-slate-700">DedupAgent</span><span class="w-2 h-2 rounded-full" style="background:oklch(0.52 0.17 160)"></span></div>
+              <p class="text-[11px] text-slate-500">已处理: 856篇</p>
+              <p class="text-xs font-medium" style="color:oklch(0.52 0.17 160)">✅ 就绪</p>
+            </div>
+            <div class="p-3 rounded-lg border" style="background:oklch(0.52 0.17 160/0.03);border-color:oklch(0.52 0.17 160/0.15)">
+              <div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold text-slate-700">ClusterAgent</span><span class="w-2 h-2 rounded-full" style="background:oklch(0.52 0.17 160)"></span></div>
+              <p class="text-[11px] text-slate-500">已处理: 42簇</p>
+              <p class="text-xs font-medium" style="color:oklch(0.52 0.17 160)">✅ 就绪</p>
+            </div>
+            <div class="p-3 rounded-lg border" style="background:oklch(0.65 0.18 80/0.03);border-color:oklch(0.65 0.18 80/0.15)">
+              <div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold text-slate-700">ResearchAgent</span><span class="w-2 h-2 rounded-full animate-pulse" style="background:oklch(0.65 0.18 80)"></span></div>
+              <p class="text-[11px] text-slate-500">进度: 67%</p>
+              <p class="text-xs font-medium" style="color:oklch(0.65 0.18 80)">🔄 运行中</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4">实时日志</h2>
+          <div class="space-y-1.5 mb-3 text-xs font-mono p-3 rounded-lg bg-slate-50 max-h-[260px] overflow-y-auto" id="logPanel">
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:32:15</span><span class="text-blue-600 shrink-0">[INFO]</span><span class="text-slate-600">ResearchAgent: 生成研报 3/5...</span></div>
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:32:10</span><span class="text-blue-600 shrink-0">[INFO]</span><span class="text-slate-600">ClusterAgent: 完成聚类，共42个主题簇</span></div>
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:31:45</span><span class="text-blue-600 shrink-0">[INFO]</span><span class="text-slate-600">DedupAgent: 去重完成，移除324篇重复</span></div>
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:30:00</span><span class="text-blue-600 shrink-0">[INFO]</span><span class="text-slate-600">CollectorAgent: 采集完成，共1234篇</span></div>
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:28:30</span><span class="text-yellow-600 shrink-0">[WARN]</span><span class="text-slate-600">NewsAPI: 请求超时，重试第2次...</span></div>
+            <div class="flex gap-2"><span class="text-slate-400 shrink-0">14:27:00</span><span class="text-blue-600 shrink-0">[INFO]</span><span class="text-slate-600">CollectorAgent: 开始采集新闻...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Metrics -->
+      <div class="card p-5 mt-4">
+        <h2 class="text-sm font-semibold text-slate-800 mb-4">系统指标</h2>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="text-center p-3 rounded-lg bg-slate-50">
+            <p class="text-xs text-slate-500 mb-1">CPU 使用率</p>
+            <p class="text-xl font-extrabold" style="color:oklch(0.52 0.18 230)">45%</p>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:45%;background:oklch(0.52 0.18 230)"></div></div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-slate-50">
+            <p class="text-xs text-slate-500 mb-1">内存</p>
+            <p class="text-xl font-extrabold" style="color:oklch(0.52 0.17 160)">2.3GB<span class="text-xs font-normal text-slate-400">/8GB</span></p>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:29%;background:oklch(0.52 0.17 160)"></div></div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-slate-50">
+            <p class="text-xs text-slate-500 mb-1">Redis 内存</p>
+            <p class="text-xl font-extrabold" style="color:oklch(0.55 0.20 30)">156MB</p>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:31%;background:oklch(0.55 0.20 30)"></div></div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-slate-50">
+            <p class="text-xs text-slate-500 mb-1">数据库大小</p>
+            <p class="text-xl font-extrabold" style="color:oklch(0.65 0.18 80)">1.2GB</p>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:24%;background:oklch(0.65 0.18 80)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 6: SETTINGS ==================== -->
+    <div class="page" id="page-settings">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-800">系统配置</h1>
+        <p class="text-sm text-slate-500 mt-0.5">管理监控主题、数据源、采集频率与推送渠道</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Topics -->
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="tags" class="w-4 h-4" style="color:oklch(0.52 0.18 230)"></i>监控主题管理</h2>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+              <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:oklch(0.52 0.18 230)"></span><span class="text-sm font-medium text-slate-700">宏观经济政策</span></div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">活跃</span>
+                <button class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+              <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:oklch(0.52 0.17 160)"></span><span class="text-sm font-medium text-slate-700">人工智能与科技</span></div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">活跃</span>
+                <button class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+              <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:oklch(0.65 0.18 80)"></span><span class="text-sm font-medium text-slate-700">新能源与碳中和</span></div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">活跃</span>
+                <button class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+              <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:oklch(0.55 0.20 30)"></span><span class="text-sm font-medium text-slate-700">半导体产业</span></div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">暂停</span>
+                <button class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" placeholder="输入新主题名称..." class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300">
+            <button class="px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors" style="background:oklch(0.52 0.18 230)">添加</button>
+          </div>
+        </div>
+
+        <!-- Data Sources -->
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="database" class="w-4 h-4" style="color:oklch(0.52 0.17 160)"></i>数据源配置</h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">📰</span><div><p class="text-sm font-medium text-slate-700">NewsAPI</p><p class="text-[11px] text-slate-400">全球新闻聚合服务</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">🕷️</span><div><p class="text-sm font-medium text-slate-700">自定义爬虫</p><p class="text-[11px] text-slate-400">财经网站定向爬取</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">📡</span><div><p class="text-sm font-medium text-slate-700">RSS 订阅</p><p class="text-[11px] text-slate-400">主流财经媒体RSS源</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">📄</span><div><p class="text-sm font-medium text-slate-700">财报PDF解析</p><p class="text-[11px] text-slate-400">上市公司财报分析</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collection Frequency -->
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4" style="color:oklch(0.65 0.18 80)"></i>采集频率设置</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-medium text-slate-600 mb-1.5 block">采集间隔 (Cron表达式)</label>
+              <input type="text" value="0 */2 * * *" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-100">
+              <p class="text-[11px] text-slate-400 mt-1">当前设置: 每2小时执行一次</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600 mb-1.5 block">日报生成时间</label>
+              <input type="text" value="0 7 * * *" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-100">
+              <p class="text-[11px] text-slate-400 mt-1">当前设置: 每天早7点生成</p>
+            </div>
+            <button class="px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors" style="background:oklch(0.52 0.18 230)">保存配置</button>
+          </div>
+        </div>
+
+        <!-- Push Channels -->
+        <div class="card p-5">
+          <h2 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4" style="color:oklch(0.55 0.20 30)"></i>推送渠道配置</h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">🔌</span><div><p class="text-sm font-medium text-slate-700">REST API</p><p class="text-[11px] text-slate-400">供下游系统调用</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-3"><span class="text-lg">📥</span><div><p class="text-sm font-medium text-slate-700">文件下载</p><p class="text-[11px] text-slate-400">Markdown / PDF格式</p></div></div>
+              <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked class="sr-only peer"><div class="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" style="background:oklch(0.52 0.18 230)"></div></label>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-50">
+            <p class="text-xs text-slate-500 mb-1">Webhook URL</p>
+            <input type="text" placeholder="https://example.com/webhook" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ===== NAVIGATION SYSTEM =====
+window._navStack = [{ page: 'dashboard' }];
+
+const PAGE_MAP = {
+  'dashboard':      { nav: 'dashboard',   title: '工作台' },
+  'briefs':         { nav: 'briefs',      title: '每日简报' },
+  'brief-detail':   { nav: 'briefs',      title: '简报详情' },
+  'reports-list':   { nav: 'reports-list',title: '研报中心' },
+  'report-detail':  { nav: 'reports-list',title: '研报详情' },
+  'clusters':       { nav: 'clusters',    title: '聚类分析' },
+  'cluster-detail': { nav: 'clusters',    title: '聚类详情' },
+  'monitor':        { nav: 'monitor',     title: '实时监控' },
+  'settings':       { nav: 'settings',    title: '系统配置' }
+};
+
+function showPage(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + pageName);
+  if (el) el.classList.add('active');
+
+  document.querySelectorAll('#topNav .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === (PAGE_MAP[pageName]?.nav || pageName));
+  });
+
+  setTimeout(() => {
+    if (pageName === 'dashboard') initTrendChart();
+    if (pageName === 'briefs') initSentimentChart();
+    if (pageName === 'clusters' || pageName === 'cluster-detail') initClusterGraph();
+    lucide.createIcons();
+  }, 50);
+}
+
+function navigateTo(pageName, data) {
+  window._navStack.push({ page: pageName, data: data });
+  showPage(pageName);
+  if (pageName === 'report-detail' && data !== undefined) loadReportDetail(data);
+  if (pageName === 'brief-detail' && data !== undefined) loadBriefDetail(data);
+  if (pageName === 'cluster-detail' && data !== undefined) loadClusterDetail(data);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBack() {
+  if (window._navStack.length <= 1) return;
+  window._navStack.pop();
+  const prev = window._navStack[window._navStack.length - 1];
+  showPage(prev.page);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== TOP NAV TABS =====
+document.querySelectorAll('#topNav .tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    window._navStack = [{ page: this.dataset.page }];
+    showPage(this.dataset.page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// ===== REPORT DETAIL DATA =====
+const reportData = [
+  { title: '央行降准政策影响深度分析', meta: '生成时间: 2026-08-04 14:30 · 信息来源: 23篇文章', bg: '中国人民银行决定于2026年8月4日起下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构）。本次下调后，金融机构加权平均存款准备金率约为6.5%，预计释放长期流动性约1万亿元。这是继2024年以来央行第三次降准，货币政策延续宽松基调，旨在加大对实体经济的金融支持力度。', sources: '[1] 中国人民银行官网 / [2] 新华社 / [3] 新浪财经', risk1: '政策传导不及预期风险', risk1desc: '降准释放的流动性可能在银行体系内沉淀，未能有效传导至实体经济', risk2: '汇率波动风险', risk2desc: '中美货币政策分化加剧可能导致人民币阶段性承压' },
+  { title: 'AI监管新规：全球政策对比与行业影响', meta: '生成时间: 2026-08-04 12:00 · 信息来源: 15篇文章', bg: '2026年8月4日，中国国家互联网信息办公室发布《生成式人工智能服务管理办法（修订版）》，正式确立分级分类监管框架。与此同时，欧盟AI法案已于8月2日正式生效，美国白宫亦发布最新AI行政令。全球三大经济体在AI治理领域呈现出明显差异化路径。', sources: '[1] 中国网信办 / [2] 欧盟委员会 / [3] 白宫官网', risk1: '合规成本激增风险', risk1desc: '中小AI企业可能面临沉重的合规负担，影响创新活力', risk2: '跨境数据流动受限', risk2desc: '各国AI监管标准不统一，可能导致数据跨境流动受阻' },
+  { title: '新能源汽车Q2财报综合分析', meta: '生成时间: 2026-08-04 10:15 · 信息来源: 18篇文章', bg: '2026年第二季度，中国新能源汽车市场持续高速增长。多家造车新势力同期发布Q2财报，其中理想汽车、蔚来、小鹏均实现季度盈利。行业整体交付量同比增长45%，渗透率突破40%大关。', sources: '[1] 理想汽车财报 / [2] 蔚来财报 / [3] 小鹏财报', risk1: '价格战持续风险', risk1desc: '车企竞争加剧可能导致毛利率进一步承压', risk2: '原材料成本波动', risk2desc: '碳酸锂等关键原材料价格变动影响利润空间' },
+  { title: '美联储利率决策与全球资本市场影响', meta: '生成时间: 2026-08-03 16:45 · 信息来源: 28篇文章', bg: '美联储在8月议息会议上维持联邦基金利率5.25%-5.5%不变，符合市场预期。主席鲍威尔在新闻发布会上明确表示"9月降息已在讨论范围内"，这是美联储迄今为止最强烈的降息信号。', sources: '[1] 美联储官网 / [2] 彭博社 / [3] 华尔街日报', risk1: '降息预期落空风险', risk1desc: '若通胀数据反弹，美联储可能推迟降息进程', risk2: '资本外流风险', risk2desc: '降息落地后美元走弱，新兴市场可能面临资本流入冲击' }
+];
+
+function loadReportDetail(idx) {
+  const d = reportData[idx] || reportData[0];
+  document.getElementById('report-detail-title').textContent = d.title;
+  document.getElementById('report-detail-meta').textContent = d.meta;
+  const content = document.getElementById('report-detail-content');
+  content.innerHTML = `
+    <div class="card p-6"><h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.52 0.18 230)">一</span>事件背景</h2><p class="text-sm text-slate-600 leading-relaxed mb-4">${d.bg}</p><div class="flex items-center gap-2 text-xs"><span class="text-slate-400">引用来源:</span>${d.sources.split(' / ').map(s => '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">'+s+'</span>').join('')}</div></div>
+    <div class="card p-6"><h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.52 0.17 160)">二</span>现状分析</h2><p class="text-sm text-slate-600 leading-relaxed mb-4">当前市场关注点集中于政策后续落地效果。多家机构已发布分析报告，主流观点认为此举有利于短期市场情绪修复，但中长期效果需进一步观察经济基本面改善情况。</p><div class="p-4 rounded-xl border border-slate-200 bg-slate-50"><h4 class="text-xs font-semibold text-slate-500 mb-2">关键数据</h4><div class="grid grid-cols-3 gap-4"><div><p class="text-xs text-slate-400">关注热度</p><p class="text-lg font-bold text-slate-800">92<span class="text-xs ml-1" style="color:oklch(0.52 0.17 160)">▲8%</span></p></div><div><p class="text-xs text-slate-400">相关报道</p><p class="text-lg font-bold text-slate-800">${d.meta.match(/\d+篇/)?.[0]||'23篇'}</p></div><div><p class="text-xs text-slate-400">通过率</p><p class="text-lg font-bold" style="color:oklch(0.52 0.17 160)">91.7%</p></div></div></div></div>
+    <div class="card p-6"><h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.65 0.18 80)">三</span>趋势研判</h2><p class="text-sm text-slate-600 leading-relaxed mb-3"><strong class="text-slate-700">短期（1-3个月）：</strong>政策效应逐步释放，相关板块有望获得资金关注。市场预期趋于稳定，投资者情绪回暖。</p><p class="text-sm text-slate-600 leading-relaxed"><strong class="text-slate-700">中长期（6-12个月）：</strong>需关注政策协调与经济结构转型的共振效果，关键变量在于内需恢复力度与外部环境变化。</p></div>
+    <div class="card p-6"><h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:oklch(0.55 0.22 25)">四</span>风险提示</h2><div class="space-y-3"><div class="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5" style="color:oklch(0.55 0.22 25)"></i><div><p class="text-sm font-medium text-slate-800">${d.risk1}</p><p class="text-xs text-slate-500 mt-0.5">${d.risk1desc}</p></div></div><div class="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5" style="color:oklch(0.55 0.20 30)"></i><div><p class="text-sm font-medium text-slate-800">${d.risk2}</p><p class="text-xs text-slate-500 mt-0.5">${d.risk2desc}</p></div></div></div></div>
+    <div class="card p-6"><h2 class="text-sm font-semibold text-slate-800 mb-4">信息来源</h2><div class="space-y-2">${d.sources.split(' / ').map((s,i) => '<div class="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-50"><span class="text-slate-600">['+(i+1)+'] '+s.split('] ')[1]+'</span><span class="text-xs text-slate-400">2026-08-0'+(4-idx)+'</span></div>').join('')}</div></div>
+  `;
+  lucide.createIcons();
+}
+
+// ===== BRIEF DETAIL DATA =====
+const briefDetailData = [
+  { title: '央行宣布降准0.5个百分点', meta: '发布时间: 2026-08-04 09:30 · 来源: 23篇相关报道 · 聚类主题: 宏观经济政策', rating: 5, content: '中国人民银行决定于2026年8月4日起下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构）。本次下调后，金融机构加权平均存款准备金率约为6.5%，预计释放长期流动性约1万亿元。<br><br>央行表示，此举旨在保持银行体系流动性合理充裕，引导金融机构加大对实体经济的支持力度，促进综合融资成本稳中有降。此次降准是继2024年以来的第三次全面降准，体现了货币政策逆周期调节的力度。<br><br>市场分析人士认为，降准将降低银行负债成本，释放更多可贷资金，有助于支持制造业、小微企业和绿色金融等重点领域。同时，降准信号也有利于稳定市场预期，增强投资者信心。' },
+  { title: 'AI大模型监管新规出台', meta: '发布时间: 2026-08-04 08:00 · 来源: 15篇相关报道 · 聚类主题: 科技政策', rating: 5, content: '中国国家互联网信息办公室于8月4日正式发布《生成式人工智能服务管理办法（修订版）》，这是全球首个针对大模型训练数据合规的专项法规。新规明确了训练数据来源合规红线，建立了分级分类监管框架。<br><br>根据新规，提供生成式AI服务的企业须在模型上线前完成安全评估备案，训练数据须通过合规审查。对于面向公众的AI产品，还须建立内容过滤和用户反馈机制。<br><br>分析人士指出，新规的出台标志着中国AI监管进入精细化管理阶段，短期可能增加企业合规成本，但长期有利于行业健康有序发展。' },
+  { title: '新能源车企Q2密集盈利', meta: '发布时间: 2026-08-04 07:15 · 来源: 18篇相关报道 · 聚类主题: 汽车产业', rating: 4, content: '2026年第二季度，中国新能源汽车市场表现亮眼。理想汽车Q2营收突破400亿元，净利润达28亿元；蔚来实现季度营收210亿元、净利润8亿元；小鹏汽车也首次实现季度盈利。<br><br>行业整体销量方面，Q2新能源汽车零售渗透率首次突破45%，乘联会数据显示6月新能源车销量达98万辆。多家机构上调全年销量预测至1200万辆以上。<br><br>行业分析师认为，盈利拐点的到来验证了新能源车企商业模式的可行性，但下半年价格竞争可能进一步加剧。' },
+  { title: '美联储按兵不动暗示降息', meta: '发布时间: 2026-08-03 22:00 · 来源: 28篇相关报道 · 聚类主题: 国际金融', rating: 4, content: '美联储在8月FOMC会议上以全票通过维持联邦基金利率5.25%-5.5%不变。主席鲍威尔在新闻发布会上表示"降息"已在讨论范围内，这是美联储最明确的政策转向信号。<br><br>鲍威尔强调，尽管通胀已从高点回落，但仍需看到更多证据表明通胀可持续地向2%目标回归。市场对此反应积极，美股三大指数当日集体收涨，10年期美债收益率下行8个基点。<br><br>市场普遍预期9月降息概率超过85%，但美联储强调降息节奏将取决于未来经济数据表现。' },
+  { title: '半导体出口管制再度升级', meta: '发布时间: 2026-08-03 18:00 · 来源: 12篇相关报道 · 聚类主题: 半导体', rating: 4, content: '美国商务部工业安全局（BIS）更新了对华半导体出口管制清单，新增多款AI训练芯片和半导体制造设备。这是继2024年以来的第三次管制升级。<br><br>受此影响，国内半导体设备、材料板块受到资本市场高度关注，国产替代进程有望加速。多家国内设备厂商表示已做好技术储备，可以填补部分管制造成的供应缺口。<br><br>产业专家指出，短期阵痛不可避免，但长期来看将倒逼国内半导体产业链完善，预计关键环节的国产化率将在未来3年内提升至50%以上。' }
+];
+
+function loadBriefDetail(idx) {
+  const d = briefDetailData[idx] || briefDetailData[0];
+  document.getElementById('brief-detail-title').textContent = d.title;
+  document.getElementById('brief-detail-meta').textContent = d.meta;
+  const starHtml = Array(5).fill(0).map((_,i) => `<span class="text-yellow-400 text-sm">${i < d.rating ? '⭐' : '☆'}</span>`).join('');
+  // Update rating
+  const ratingDiv = document.querySelector('#page-brief-detail .card.p-4.text-center:first-child div');
+  if (ratingDiv) ratingDiv.innerHTML = starHtml;
+  // Update content
+  const contentDiv = document.querySelector('#page-brief-detail .card:has([data-lucide="file-text"]) .text-sm');
+  if (contentDiv) contentDiv.innerHTML = d.content.split('<br><br>').map(p => `<p>${p}</p>`).join('');
+}
+
+// ===== CLUSTER DETAIL DATA =====
+const clusterDetailData = [
+  { title: 'AI监管政策动向', meta: '主题标签: 科技政策 · 相关文章: 23篇 · 时间跨度: 3天', rating: 5 },
+  { title: '半导体供应链变化', meta: '主题标签: 半导体 · 相关文章: 15篇 · 时间跨度: 5天', rating: 4 },
+  { title: '中美贸易关系动态', meta: '主题标签: 国际贸易 · 相关文章: 18篇 · 时间跨度: 4天', rating: 3 }
+];
+
+function loadClusterDetail(idx) {
+  const d = clusterDetailData[idx] || clusterDetailData[0];
+  document.getElementById('cluster-detail-title').textContent = d.title;
+  document.getElementById('cluster-detail-meta').textContent = d.meta;
+}
+
+// ===== WIRE UP CLICK HANDLERS =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Briefs: TOP5 expand details
+  document.querySelectorAll('#page-briefs button').forEach(btn => {
+    if (btn.textContent.includes('展开详情')) {
+      const row = btn.closest('.flex.items-center.justify-between');
+      if (row) {
+        const idx = Array.from(row.parentElement.children).indexOf(row);
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigateTo('brief-detail', idx);
+        });
+      }
+    }
+  });
+
+  // Briefs: report card read buttons  
+  document.querySelectorAll('#page-briefs .grid.grid-cols-2 .border.rounded-xl button').forEach((btn, i) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateTo('report-detail', i);
+    });
+  });
+
+  // Briefs: report cards click
+  document.querySelectorAll('#page-briefs .grid.grid-cols-2 .border.rounded-xl').forEach((card, i) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      navigateTo('report-detail', i);
+    });
+  });
+
+  // Dashboard: top news items click -> brief-detail
+  document.querySelectorAll('#page-dashboard .card:first-of-type .space-y-3 > div').forEach((item, i) => {
+    item.addEventListener('click', () => navigateTo('brief-detail', i));
+  });
+
+  // Dashboard: latest reports click -> report-detail
+  document.querySelectorAll('#page-dashboard .card:nth-of-type(5) .space-y-2\.5 > div, #page-dashboard .grid.grid-cols-2:last-child .card:first-child .space-y-2\.5 > div').forEach((item, i) => {
+    item.addEventListener('click', () => navigateTo('report-detail', i));
+  });
+
+  // Clusters: view detail buttons
+  document.querySelectorAll('#page-clusters button').forEach(btn => {
+    if (btn.textContent.includes('查看详情')) {
+      const card = btn.closest('.border.rounded-xl');
+      if (card) {
+        const idx = Array.from(card.parentElement.children).indexOf(card);
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigateTo('cluster-detail', idx);
+        });
+      }
+    }
+  });
+
+  // Clusters: cluster cards click -> detail
+  document.querySelectorAll('#page-clusters .space-y-3 > div').forEach((card, i) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      navigateTo('cluster-detail', i);
+    });
+  });
+});
+
+// ===== CHARTS =====
+function initTrendChart() {
+  const dom = document.getElementById('trendChart');
+  if (!dom || dom._echart) return;
+  const chart = echarts.init(dom); dom._echart = chart;
+  chart.setOption({
+    grid: { left: 5, right: 15, top: 10, bottom: 5, containLabel: true },
+    xAxis: { type: 'category', data: ['7/29','7/30','7/31','8/1','8/2','8/3','8/4'], axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8', fontSize: 11 } },
+    series: [{ data: [980,1050,1120,1080,1180,1150,1234], type: 'line', smooth: true, symbol: 'circle', symbolSize: 6, lineStyle: { color: 'oklch(0.52 0.18 230)', width: 2.5 }, itemStyle: { color: 'oklch(0.52 0.18 230)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'oklch(0.52 0.18 230 / 0.2)'},{offset:1,color:'oklch(0.52 0.18 230 / 0.02)'}]) } }]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+function initSentimentChart() {
+  const dom = document.getElementById('sentimentChart');
+  if (!dom || dom._echart) return;
+  const chart = echarts.init(dom); dom._echart = chart;
+  chart.setOption({
+    grid: { left: 0, right: 5, top: 5, bottom: 0, containLabel: true },
+    xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#94a3b8', fontSize: 10 } },
+    yAxis: { type: 'value', min: 30, max: 100, splitLine: { lineStyle: { color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8', fontSize: 10 } },
+    series: [
+      { name: '情绪', data: [68,72,65,70,75,72,72], type: 'line', smooth: true, lineStyle: { color: 'oklch(0.52 0.17 160)', width: 2 }, itemStyle: { color: 'oklch(0.52 0.17 160)' }, symbol: 'none' },
+      { name: '热度', data: [80,78,82,85,88,83,85], type: 'line', smooth: true, lineStyle: { color: 'oklch(0.55 0.20 30)', width: 2 }, itemStyle: { color: 'oklch(0.55 0.20 30)' }, symbol: 'none' },
+      { name: '波动', data: [55,50,48,52,45,47,45], type: 'line', smooth: true, lineStyle: { color: 'oklch(0.52 0.18 230)', width: 2, type: 'dashed' }, itemStyle: { color: 'oklch(0.52 0.18 230)' }, symbol: 'none' }
+    ]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+function initClusterGraph() {
+  const dom = document.getElementById('clusterGraph');
+  if (!dom || dom._echart) return;
+  const chart = echarts.init(dom); dom._echart = chart;
+  const nodes = [
+    { id: 'AI监管', name: 'AI监管', symbolSize: 38, category: 0, itemStyle: { color: 'oklch(0.52 0.18 230)' } },
+    { id: '科技公司', name: '科技公司', symbolSize: 32, category: 0 },
+    { id: '政策', name: '政策', symbolSize: 34, category: 1, itemStyle: { color: 'oklch(0.52 0.17 160)' } },
+    { id: '芯片', name: '芯片', symbolSize: 30, category: 0 },
+    { id: '中美关系', name: '中美关系', symbolSize: 36, category: 1, itemStyle: { color: 'oklch(0.52 0.17 160)' } },
+    { id: '贸易', name: '贸易', symbolSize: 28, category: 1 },
+    { id: '新能源', name: '新能源', symbolSize: 32, category: 2, itemStyle: { color: 'oklch(0.65 0.18 80)' } },
+    { id: '半导体', name: '半导体', symbolSize: 30, category: 0 },
+    { id: '金融', name: '金融', symbolSize: 34, category: 2, itemStyle: { color: 'oklch(0.55 0.20 30)' } },
+    { id: '降准', name: '降准', symbolSize: 28, category: 2 }
+  ];
+  const links = [
+    { source: 'AI监管', target: '科技公司' },{ source: 'AI监管', target: '政策' },{ source: '政策', target: '芯片' },
+    { source: '政策', target: '中美关系' },{ source: '中美关系', target: '贸易' },{ source: '芯片', target: '半导体' },
+    { source: '芯片', target: '科技公司' },{ source: '中美关系', target: '新能源' },{ source: '金融', target: '降准' },
+    { source: '金融', target: '政策' },{ source: '新能源', target: '政策' },{ source: '半导体', target: '贸易' }
+  ];
+  chart.setOption({
+    tooltip: {},
+    series: [{ type: 'graph', layout: 'force', roam: true, draggable: true, force: { repulsion: 280, gravity: 0.12, edgeLength: [100,220] }, label: { show: true, fontSize: 11, color: '#334155', fontWeight: 500 }, edgeSymbol: ['none','none'], lineStyle: { color: '#cbd5e1', width: 1.5, curveness: 0.2, opacity: 0.7 }, data: nodes, links: links, categories: [{ name: '科技', itemStyle: { color: 'oklch(0.52 0.18 230)' } },{ name: '政策', itemStyle: { color: 'oklch(0.52 0.17 160)' } },{ name: '其他', itemStyle: { color: 'oklch(0.55 0.20 30)' } }] }]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+// ===== INIT =====
+initTrendChart();
+lucide.createIcons();
+</script>
+</body>
+</html>

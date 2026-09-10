@@ -1,0 +1,7 @@
+backend/
+__pycache__/
+*.db
+*.pyc
+.env
+exports/
+data/

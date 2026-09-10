@@ -1,0 +1,39 @@
+.env
+**/.env
+__pycache__/
+node_modules/
+.DS_Store
+
+# 报告和导出文件
+exports/
+**/exports/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.pdf
+
+# 日志
+*.log
+logs/
+**/logs/
+
+# 截图和临时图片
+*.png
+*.jpg
+*.jpeg
+*.gif
+screenshots/
+**/screenshots/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 前端依赖和构建产物
+node_modules/
+.nuxt/
+.output/
+dist/

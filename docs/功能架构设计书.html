@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智览 — AI自动化研报平台 · 功能架构设计书</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:oklch(0.985 0.003 260);
+  --bg-card:oklch(1 0 0);
+  --bg-card-hover:oklch(0.975 0.005 260);
+  --bg-code:oklch(0.97 0.005 260);
+  --border:oklch(0.91 0.008 260);
+  --border-light:oklch(0.94 0.006 260);
+  --text:oklch(0.15 0.01 260);
+  --text-muted:oklch(0.38 0.015 260);
+  --text-dim:oklch(0.52 0.015 260);
+  --primary:oklch(0.52 0.18 230);
+  --primary-glow:oklch(0.52 0.18 230 / 0.12);
+  --accent:oklch(0.52 0.17 160);
+  --accent2:oklch(0.55 0.20 30);
+  --accent3:oklch(0.55 0.18 50);
+  --warning:oklch(0.65 0.18 80);
+  --danger:oklch(0.55 0.22 25);
+  --radius:0.75rem;
+  --radius-lg:1rem;
+  --shadow:0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.05);
+  --font-sans:'Inter','Noto Sans SC',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --sidebar-w:280px;
+  --header-h:64px;
+}
+html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased}
+::selection{background:var(--primary);color:#fff}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* === HEADER === */
+.header{
+  position:fixed;top:0;left:0;right:0;height:var(--header-h);z-index:100;
+  background:oklch(0.985 0.003 260 / 0.9);backdrop-filter:blur(20px) saturate(1.5);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 2rem;gap:1.5rem;
+}
+.header-logo{display:flex;align-items:center;gap:0.75rem;text-decoration:none;color:var(--text)}
+.header-logo-icon{
+  width:36px;height:36px;border-radius:8px;display:inline-flex;
+  background:linear-gradient(135deg,var(--primary),oklch(0.55 0.16 200));
+  align-items:center;justify-content:center;
+  font-weight:800;font-size:1rem;color:#fff;
+}
+.header-logo-text{font-weight:700;font-size:1.1rem;letter-spacing:-0.02em}
+.header-badge{
+  font-size:0.65rem;font-weight:600;padding:0.2rem 0.5rem;border-radius:999px;
+  background:var(--primary-glow);color:var(--primary);border:1px solid oklch(0.52 0.18 230 / 0.3);
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+.header-spacer{flex:1}
+.header-meta{font-size:0.8rem;color:var(--text-muted)}
+
+/* === SIDEBAR NAV === */
+.sidebar{
+  position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sidebar-w);
+  background:var(--bg);border-right:1px solid var(--border);
+  overflow-y:auto;padding:1.5rem 0;z-index:90;
+}
+.sidebar-section{padding:0 1.25rem;margin-bottom:0.5rem}
+.sidebar-section-title{
+  font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--text-dim);margin-bottom:0.5rem;padding-left:0.5rem;
+}
+.sidebar-link{
+  display:flex;align-items:center;gap:0.6rem;padding:0.45rem 0.75rem;border-radius:0.5rem;
+  text-decoration:none;color:var(--text-muted);font-size:0.82rem;font-weight:400;
+  transition:all 150ms ease;margin-bottom:1px;
+}
+.sidebar-link:hover{background:var(--bg-card);color:var(--text)}
+.sidebar-link.active{background:var(--primary-glow);color:var(--primary);font-weight:500}
+.sidebar-link-icon{font-size:0.9rem;width:1.2rem;text-align:center;flex-shrink:0}
+
+/* === MAIN === */
+.main{margin-left:var(--sidebar-w);margin-top:var(--header-h);min-height:calc(100vh - var(--header-h))}
+.content{max-width:920px;margin:0 auto;padding:3rem 2.5rem 6rem}
+
+/* === HERO === */
+.hero{
+  text-align:center;padding:4rem 0 3rem;margin-bottom:2rem;
+  border-bottom:1px solid var(--border);
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:0.5rem;
+  font-size:0.75rem;font-weight:500;padding:0.35rem 1rem;border-radius:999px;
+  background:oklch(0.75 0.15 160 / 0.1);color:var(--accent);
+  border:1px solid oklch(0.75 0.15 160 / 0.2);margin-bottom:1.5rem;
+}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero h1{
+  font-size:clamp(2rem,4vw,3.2rem);font-weight:800;letter-spacing:-0.03em;
+  line-height:1.15;margin-bottom:1rem;
+  background:linear-gradient(135deg,var(--text) 30%,var(--primary) 70%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-desc{font-size:1.05rem;color:var(--text-muted);max-width:640px;margin:0 auto 2rem;line-height:1.8}
+.hero-stats{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat-val{font-size:1.8rem;font-weight:800;color:var(--primary);letter-spacing:-0.02em}
+.hero-stat-label{font-size:0.75rem;color:var(--text-dim);margin-top:0.15rem}
+
+/* === SECTIONS === */
+.section{margin-bottom:4rem;animation:fadeUp 0.6s ease both}
+.section:nth-child(2){animation-delay:0.1s}
+.section:nth-child(3){animation-delay:0.15s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+.section-anchor{display:block;position:relative;top:-80px;visibility:hidden}
+.section-header{margin-bottom:1.5rem}
+.section-num{
+  font-size:0.7rem;font-weight:700;color:var(--primary);
+  letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.4rem;
+}
+.section-title{
+  font-size:1.6rem;font-weight:700;letter-spacing:-0.02em;line-height:1.3;
+  color:var(--text);
+}
+.section-subtitle{font-size:0.9rem;color:var(--text-muted);margin-top:0.35rem}
+
+h3{font-size:1.15rem;font-weight:600;color:var(--text);margin:2rem 0 0.8rem;letter-spacing:-0.01em}
+h4{font-size:0.95rem;font-weight:600;color:var(--text);margin:1.5rem 0 0.6rem}
+p{margin-bottom:1rem;font-size:0.9rem}
+strong{font-weight:600;color:oklch(0.20 0.01 260)}
+ul,ol{margin:0 0 1rem 1.5rem;font-size:0.9rem}
+li{margin-bottom:0.35rem}
+
+/* === CARDS === */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:1rem 0 1.5rem}
+.card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.25rem 1.5rem;transition:all 200ms ease;
+}
+.card:hover{background:var(--bg-card-hover);border-color:var(--border-light);transform:translateY(-2px);box-shadow:var(--shadow)}
+.card-icon{font-size:1.5rem;margin-bottom:0.6rem}
+.card-title{font-size:0.9rem;font-weight:600;margin-bottom:0.3rem}
+.card-desc{font-size:0.8rem;color:var(--text-muted);line-height:1.6}
+
+/* === VALUE CARDS === */
+.value-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.5rem 0}
+.value-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:1.5rem;position:relative;overflow:hidden;
+}
+.value-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--primary),var(--accent));opacity:0;
+  transition:opacity 200ms;
+}
+.value-card:hover::before{opacity:1}
+.value-card-title{font-size:0.95rem;font-weight:600;margin-bottom:0.5rem}
+.value-card-desc{font-size:0.82rem;color:var(--text-muted);line-height:1.7}
+
+/* === TECH STACK === */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;margin:1.5rem 0}
+.tech-item{
+  display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  transition:all 200ms;
+}
+.tech-item:hover{border-color:var(--primary);background:var(--bg-card-hover)}
+.tech-icon{
+  width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+}
+.tech-name{font-size:0.85rem;font-weight:600}
+.tech-desc{font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem}
+
+/* === ARCHITECTURE DIAGRAM === */
+.arch-diagram{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:2rem;margin:1.5rem 0;overflow-x:auto;
+}
+.arch-layer{
+  border:1.5px solid var(--border-light);border-radius:var(--radius);
+  padding:1.25rem 1.5rem;margin-bottom:0.75rem;position:relative;
+  transition:border-color 300ms;
+}
+.arch-layer:hover{border-color:var(--primary)}
+.arch-layer-label{
+  position:absolute;top:-0.6rem;left:1.25rem;padding:0 0.5rem;
+  background:var(--bg-card);font-size:0.7rem;font-weight:600;
+  color:var(--primary);letter-spacing:0.04em;
+}
+.arch-items{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:center}
+.arch-chip{
+  padding:0.4rem 0.9rem;border-radius:999px;font-size:0.75rem;font-weight:500;
+  background:oklch(0.96 0.006 260);border:1px solid var(--border-light);
+  white-space:nowrap;
+}
+.arch-arrow{text-align:center;color:var(--text-dim);font-size:1.2rem;margin:0.3rem 0;letter-spacing:0.5rem}
+
+/* === FLOW CHART === */
+.flow-steps{display:flex;flex-direction:column;gap:0.5rem;margin:1.5rem 0;align-items:center}
+.flow-step{
+  display:flex;align-items:center;gap:1rem;padding:0.8rem 1.5rem;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  min-width:300px;transition:all 200ms;
+}
+.flow-step:hover{border-color:var(--primary);transform:scale(1.02)}
+.flow-step-num{
+  width:28px;height:28px;border-radius:50%;background:var(--primary-glow);
+  color:var(--primary);font-size:0.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.flow-step-title{font-size:0.85rem;font-weight:600}
+.flow-step-desc{font-size:0.75rem;color:var(--text-muted)}
+.flow-arrow{color:var(--text-dim);font-size:1.2rem}
+.flow-branch{display:flex;gap:0.5rem;align-items:center;margin-left:2rem}
+.flow-branch-item{
+  padding:0.4rem 0.8rem;border-radius:var(--radius);font-size:0.75rem;
+  border:1px dashed var(--border-light);color:var(--text-muted);
+}
+
+/* === TABLE === */
+.table-wrap{overflow-x:auto;margin:1rem 0 1.5rem;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:0.85rem}
+thead{background:oklch(0.97 0.005 260)}
+th{padding:0.75rem 1rem;text-align:left;font-weight:600;font-size:0.78rem;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border)}
+td{padding:0.7rem 1rem;border-bottom:1px solid oklch(0.93 0.006 260)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:oklch(0.975 0.005 260)}
+
+/* === CODE === */
+pre{
+  background:var(--bg-code);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem 1.5rem;overflow-x:auto;margin:1rem 0 1.5rem;
+  font-family:var(--font-mono);font-size:0.78rem;line-height:1.8;color:var(--text-muted);
+}
+code{font-family:var(--font-mono);font-size:0.82rem;
+  background:oklch(0.95 0.01 260);padding:0.15rem 0.4rem;border-radius:4px;color:var(--primary)}
+pre code{background:none;padding:0;color:inherit}
+
+/* === AGENT CARDS === */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0.75rem;margin:1rem 0}
+.agent-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem 1.25rem;transition:all 200ms;
+}
+.agent-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.agent-name{font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;display:flex;align-items:center;gap:0.5rem}
+.agent-name::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.agent-role{font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem}
+.agent-tools{display:flex;gap:0.3rem;flex-wrap:wrap}
+.agent-tool{
+  font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:999px;
+  background:oklch(0.96 0.006 260);border:1px solid var(--border);color:var(--text-dim);
+}
+
+/* === PHASE TIMELINE === */
+.timeline{position:relative;margin:1.5rem 0;padding-left:2rem}
+.timeline::before{
+  content:'';position:absolute;left:0.5rem;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,var(--primary),var(--accent),var(--accent2));
+  border-radius:1px;
+}
+.timeline-item{position:relative;margin-bottom:2rem}
+.timeline-item::before{
+  content:'';position:absolute;left:-1.65rem;top:0.5rem;width:12px;height:12px;
+  border-radius:50%;background:var(--primary);border:3px solid var(--bg);
+}
+.timeline-phase{font-size:0.7rem;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:0.04em}
+.timeline-title{font-size:1rem;font-weight:600;margin:0.2rem 0 0.5rem}
+.timeline-tasks{list-style:none;margin:0;padding:0}
+.timeline-tasks li{
+  font-size:0.82rem;color:var(--text-muted);padding:0.25rem 0;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.timeline-tasks li::before{
+  content:'';width:14px;height:14px;border-radius:3px;flex-shrink:0;
+  border:1.5px solid var(--border-light);
+}
+
+/* === DEPLOY DIAGRAM === */
+.deploy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin:1rem 0}
+.deploy-box{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem;text-align:center;transition:all 200ms;
+}
+.deploy-box:hover{border-color:var(--primary)}
+.deploy-box-name{font-size:0.82rem;font-weight:600;margin-bottom:0.2rem}
+.deploy-box-port{font-size:0.7rem;color:var(--primary);font-family:var(--font-mono)}
+.deploy-box-desc{font-size:0.72rem;color:var(--text-dim);margin-top:0.2rem}
+
+/* === BADGE TAGS === */
+.tags{display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.5rem 0}
+.tag{
+  font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:999px;font-weight:500;
+  border:1px solid;
+}
+.tag-blue{background:oklch(0.52 0.18 230/0.1);color:var(--primary);border-color:oklch(0.52 0.18 230/0.2)}
+.tag-green{background:oklch(0.75 0.15 160/0.1);color:var(--accent);border-color:oklch(0.75 0.15 160/0.2)}
+.tag-orange{background:oklch(0.72 0.18 30/0.1);color:var(--accent2);border-color:oklch(0.72 0.18 30/0.2)}
+.tag-yellow{background:oklch(0.80 0.16 80/0.1);color:var(--warning);border-color:oklch(0.80 0.16 80/0.2)}
+
+/* === DEDUP LAYERS === */
+.dedup-stack{display:flex;flex-direction:column;gap:0.5rem;margin:1rem 0}
+.dedup-layer{
+  display:flex;align-items:center;gap:1rem;padding:0.8rem 1.25rem;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+}
+.dedup-num{
+  width:32px;height:32px;border-radius:50%;font-size:0.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.dedup-layer:nth-child(1) .dedup-num{background:oklch(0.52 0.18 230/0.15);color:var(--primary)}
+.dedup-layer:nth-child(2) .dedup-num{background:oklch(0.75 0.15 160/0.15);color:var(--accent)}
+.dedup-layer:nth-child(3) .dedup-num{background:oklch(0.72 0.18 30/0.15);color:var(--accent2)}
+.dedup-info{font-size:0.85rem}
+.dedup-info small{display:block;font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem}
+
+/* === RESPONSIVE === */
+@media(max-width:1024px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .value-cards{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .content{padding:2rem 1.25rem 4rem}
+  .hero h1{font-size:1.8rem}
+  .hero-stats{gap:1.5rem}
+  .tech-grid{grid-template-columns:1fr}
+  .card-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <a class="header-logo" href="#">
+    <span class="header-logo-icon">智</span>
+    <span class="header-logo-text">智览</span>
+  </a>
+  <span class="header-badge">Architecture v1.0</span>
+  <div class="header-spacer"></div>
+  <span class="header-meta">功能架构设计书 · 2026-05-27</span>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">总览</div>
+    <a class="sidebar-link active" href="#overview"><span class="sidebar-link-icon">📋</span>项目概述</a>
+    <a class="sidebar-link" href="#techstack"><span class="sidebar-link-icon">🧰</span>技术栈总览</a>
+    <a class="sidebar-link" href="#architecture"><span class="sidebar-link-icon">🏗️</span>系统架构</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">核心模块</div>
+    <a class="sidebar-link" href="#collector"><span class="sidebar-link-icon">📡</span>多源信息采集</a>
+    <a class="sidebar-link" href="#dedup"><span class="sidebar-link-icon">🔗</span>去重与聚类</a>
+    <a class="sidebar-link" href="#rag"><span class="sidebar-link-icon">🧠</span>AgenticRAG 摘要</a>
+    <a class="sidebar-link" href="#brief"><span class="sidebar-link-icon">📰</span>简报与推送</a>
+    <a class="sidebar-link" href="#frontend"><span class="sidebar-link-icon">🖥️</span>前端架构</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">详细设计</div>
+    <a class="sidebar-link" href="#agents"><span class="sidebar-link-icon">🤖</span>Agent 设计</a>
+    <a class="sidebar-link" href="#cache"><span class="sidebar-link-icon">💾</span>缓存策略</a>
+    <a class="sidebar-link" href="#api"><span class="sidebar-link-icon">🔌</span>接口设计</a>
+    <a class="sidebar-link" href="#structure"><span class="sidebar-link-icon">📁</span>目录结构</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">工程化</div>
+    <a class="sidebar-link" href="#challenges"><span class="sidebar-link-icon">⚡</span>技术难点</a>
+    <a class="sidebar-link" href="#deploy"><span class="sidebar-link-icon">🚀</span>部署架构</a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+<div class="content">
+
+<!-- ==================== HERO ==================== -->
+<div class="hero" id="overview">
+  <div class="hero-badge">AgenticRAG Platform</div>
+  <h1>AI自动化研报<br>新闻摘要生成平台</h1>
+  <p class="hero-desc">面向金融、咨询、媒体行业的智能文本处理平台，基于 AgenticRAG 架构，实现从多源信息采集、智能去重聚类、深度摘要生成到每日简报推送的全链路自动化。</p>
+</div>
+
+<!-- VALUE -->
+<div class="value-cards">
+  <div class="value-card">
+    <div class="card-icon">⚡</div>
+    <div class="value-card-title">效率提升</div>
+    <div class="value-card-desc">将人工数小时的信息搜集与研报撰写压缩至分钟级</div>
+  </div>
+  <div class="value-card">
+    <div class="card-icon">🎯</div>
+    <div class="value-card-title">质量保障</div>
+    <div class="value-card-desc">结构化研报模板 + LLM 深度分析，确保专业性与完整性</div>
+  </div>
+  <div class="value-card">
+    <div class="card-icon">🔬</div>
+    <div class="value-card-title">技术深度</div>
+    <div class="value-card-desc">展示 LangChain 在长文本处理与复杂工作流编排上的能力</div>
+  </div>
+</div>
+
+<!-- ==================== TECH STACK ==================== -->
+<span class="section-anchor" id="techstack"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 02</div>
+    <div class="section-title">技术栈总览</div>
+  </div>
+  <div class="tech-grid">
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.52 0.18 230/0.12)">🔗</div><div><div class="tech-name">LangGraph</div><div class="tech-desc">有状态多Agent工作流编排</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.52 0.17 160/0.12)">🦜</div><div><div class="tech-name">LangChain</div><div class="tech-desc">LLM调用链 · Prompt模板 · 文档处理</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.55 0.20 30/0.12)">🤖</div><div><div class="tech-name">Qwen3.7 Max</div><div class="tech-desc">通义千问大模型 · 长上下文窗口</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.55 0.18 50/0.12)">🔍</div><div><div class="tech-name">Qwen3-Embedding</div><div class="tech-desc">通义文本向量化模型</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.65 0.18 80/0.12)">🔎</div><div><div class="tech-name">Elasticsearch 8.x</div><div class="tech-desc">向量kNN + BM25 混合搜索</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.55 0.22 25/0.12)">💨</div><div><div class="tech-name">Redis</div><div class="tech-desc">热点缓存 · 任务去重 · 降级</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.52 0.18 230/0.12)">⚡</div><div><div class="tech-name">FastAPI</div><div class="tech-desc">REST API + WebSocket 服务</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.52 0.17 160/0.12)">💚</div><div><div class="tech-name">Nuxt 3 + Vue 3</div><div class="tech-desc">SSR/SSG · Composition API</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.55 0.20 30/0.12)">🧩</div><div><div class="tech-name">Tailwind CSS</div><div class="tech-desc">实用优先的 CSS 框架</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.65 0.18 80/0.12)">📊</div><div><div class="tech-name">ECharts</div><div class="tech-desc">数据看板 · 趋势图 · 聚类可视化</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.55 0.22 25/0.12)">🗄️</div><div><div class="tech-name">MySQL</div><div class="tech-desc">关系型数据存储</div></div></div>
+    <div class="tech-item"><div class="tech-icon" style="background:oklch(0.52 0.18 230/0.12)">📰</div><div><div class="tech-name">NewsAPI + 爬虫</div><div class="tech-desc">多源新闻与财报采集</div></div></div>
+  </div>
+</div>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<span class="section-anchor" id="architecture"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 03</div>
+    <div class="section-title">系统架构</div>
+  </div>
+
+  <h3>整体架构</h3>
+  <div class="arch-diagram">
+    <div class="arch-layer" style="border-color:oklch(0.75 0.15 160/0.4)">
+      <div class="arch-layer-label" style="color:var(--accent)">前端展示层 — Nuxt 3 + Vue 3</div>
+      <div class="arch-items">
+        <span class="arch-chip">Dashboard 工作台</span>
+        <span class="arch-chip">研报中心</span>
+        <span class="arch-chip">数据看板</span>
+        <span class="arch-chip">配置管理</span>
+        <span class="arch-chip">实时监控</span>
+      </div>
+    </div>
+    <div class="arch-arrow">↕ HTTP / WebSocket / REST API / 文件下载</div>
+    <div class="arch-layer" style="border-color:oklch(0.52 0.18 230/0.4)">
+      <div class="arch-layer-label" style="color:var(--primary)">API 网关层 — FastAPI</div>
+      <div class="arch-items">
+        <span class="arch-chip">认证鉴权</span>
+        <span class="arch-chip">请求路由</span>
+        <span class="arch-chip">限流控制</span>
+        <span class="arch-chip">参数校验</span>
+      </div>
+    </div>
+    <div class="arch-arrow">↕</div>
+    <div class="arch-layer" style="border-color:oklch(0.72 0.18 30/0.4)">
+      <div class="arch-layer-label" style="color:var(--accent2)">LangGraph 工作流编排层</div>
+      <div class="arch-items">
+        <span class="arch-chip">采集 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">去重 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">聚类 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">摘要 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">研报 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">审核 Agent</span>
+        <span class="arch-chip">→</span>
+        <span class="arch-chip">推送 Agent</span>
+      </div>
+    </div>
+    <div class="arch-arrow">↕</div>
+    <div class="arch-layer" style="border-color:oklch(0.80 0.16 80/0.4)">
+      <div class="arch-layer-label" style="color:var(--warning)">数据与基础设施层</div>
+      <div class="arch-items">
+        <span class="arch-chip">Redis 缓存</span>
+        <span class="arch-chip">Elasticsearch 8.x</span>
+        <span class="arch-chip">MySQL</span>
+        <span class="arch-chip">文件存储</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>LangGraph 工作流</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><div class="flow-step-num">1</div><div><div class="flow-step-title">多源采集 Collect</div><div class="flow-step-desc">NewsAPI / 爬虫 / RSS / 财报PDF</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">2</div><div><div class="flow-step-title">数据预处理 Preprocess</div><div class="flow-step-desc">文本清洗 · 分段 · 语言检测</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">3</div><div><div class="flow-step-title">去重检测 Dedup</div><div class="flow-step-desc">BloomFilter + SimHash + Embedding</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">4</div><div><div class="flow-step-title">语义聚类 Cluster</div><div class="flow-step-desc">Qwen3-Embedding + HDBSCAN</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">5</div><div><div class="flow-step-title">RAG 检索增强 Retrieve</div><div class="flow-step-desc">ES kNN + BM25 混合检索 + Rerank</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">6</div><div><div class="flow-step-title">深度摘要生成 Summarize</div><div class="flow-step-desc">Qwen3.7 Max 结构化研报生成</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">7</div><div><div class="flow-step-title">质量审核 Review</div><div class="flow-step-desc">事实核查 + 幻觉检测</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">8</div><div><div class="flow-step-title">研报组装 Compose</div><div class="flow-step-desc">Markdown 日报组装</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">9</div><div><div class="flow-step-title">格式导出 Export</div><div class="flow-step-desc">PDF / Markdown</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">10</div><div><div class="flow-step-title">推送分发 Dispatch</div><div class="flow-step-desc">REST API + 文件下载</div></div></div>
+  </div>
+  <p style="text-align:center;font-size:0.8rem;color:var(--text-dim);margin-top:0.5rem">* 审核不通过时，自动返回摘要生成步骤（最多 3 次循环）*</p>
+</div>
+
+<!-- ==================== COLLECTOR ==================== -->
+<span class="section-anchor" id="collector"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 04 · Module 01</div>
+    <div class="section-title">多源信息采集</div>
+    <div class="section-subtitle">定时从多个数据源抓取特定主题的新闻、财报、公告等文本信息</div>
+  </div>
+  <div class="card-grid">
+    <div class="card"><div class="card-icon">📰</div><div class="card-title">NewsAPI 采集器</div><div class="card-desc">通过 NewsAPI 获取全球新闻，支持关键词、语言、时间范围过滤</div></div>
+    <div class="card"><div class="card-icon">🕷️</div><div class="card-title">自定义爬虫</div><div class="card-desc">针对新浪财经、东方财富等财经网站的定向爬取</div></div>
+    <div class="card"><div class="card-icon">📡</div><div class="card-title">RSS 订阅</div><div class="card-desc">支持主流财经媒体的 RSS 源订阅</div></div>
+    <div class="card"><div class="card-icon">📄</div><div class="card-title">财报 PDF 解析</div><div class="card-desc">解析上市公司财报 PDF，提取关键财务数据</div></div>
+  </div>
+  <h4>关键设计</h4>
+  <div class="tags">
+    <span class="tag tag-blue">采集频率: Cron 可配置，默认 2h</span>
+    <span class="tag tag-green">增量采集: URL哈希 + Redis</span>
+    <span class="tag tag-orange">反爬策略: UA轮换 + 代理池</span>
+    <span class="tag tag-yellow">容错机制: 单源失败自动重试</span>
+  </div>
+  <h4>数据模型 — RawArticle</h4>
+  <pre><code>class RawArticle:
+    source: str              # 来源 (newsapi / crawler / rss)
+    title: str               # 标题
+    content: str             # 正文内容
+    url: str                 # 原文链接
+    published_at: datetime   # 发布时间
+    author: str              # 作者
+    language: str            # 语言
+    topic_tags: list[str]    # 主题标签
+    raw_html: str            # 原始HTML (备用)</code></pre>
+</div>
+
+<!-- ==================== DEDUP ==================== -->
+<span class="section-anchor" id="dedup"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 04 · Module 02</div>
+    <div class="section-title">去重与聚类</div>
+    <div class="section-subtitle">识别相似新闻，合并同类项，将碎片化信息聚合为有意义的主题簇</div>
+  </div>
+  <h4>三层去重策略</h4>
+  <div class="dedup-stack">
+    <div class="dedup-layer"><div class="dedup-num">L1</div><div class="dedup-info"><strong>精确去重</strong><small>URL哈希 + 标题哈希 → Redis BloomFilter</small></div></div>
+    <div class="dedup-layer"><div class="dedup-num">L2</div><div class="dedup-info"><strong>近似去重</strong><small>SimHash / MinHash → 文本指纹相似度 &gt; 0.9 判定重复</small></div></div>
+    <div class="dedup-layer"><div class="dedup-num">L3</div><div class="dedup-info"><strong>语义去重</strong><small>Qwen3-Embedding 向量 → 余弦相似度 &gt; 0.92 判定语义重复</small></div></div>
+  </div>
+  <h4>聚类算法</h4>
+  <div class="table-wrap"><table>
+    <thead><tr><th>方法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>语义 Embedding</strong></td><td>使用 <code>Qwen3-Embedding</code> 将文章向量化</td></tr>
+      <tr><td><strong>聚类算法</strong></td><td>HDBSCAN — 自动确定簇数量，优于 K-Means</td></tr>
+      <tr><td><strong>簇合并策略</strong></td><td>同一簇内按时间排序，选取最早 + 最权威来源为代表</td></tr>
+      <tr><td><strong>簇标签生成</strong></td><td>Qwen3.7 Max 自动生成簇的主题标签</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ==================== RAG ==================== -->
+<span class="section-anchor" id="rag"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 04 · Module 03</div>
+    <div class="section-title">AgenticRAG 深度摘要生成</div>
+    <div class="section-subtitle">生成"背景-现状-趋势-风险"结构化的专业研报</div>
+  </div>
+  <h4>RAG 检索增强流程</h4>
+  <div class="flow-steps">
+    <div class="flow-step"><div class="flow-step-num">1</div><div><div class="flow-step-title">Query 改写</div><div class="flow-step-desc">LLM 将主题扩展为多个检索 Query</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">2</div><div><div class="flow-step-title">多路召回</div><div class="flow-step-desc">ES kNN 向量检索 + ES BM25 关键词检索 + 时间过滤</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">3</div><div><div class="flow-step-title">重排序 Rerank</div><div class="flow-step-desc">Cross-Encoder 精排</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">4</div><div><div class="flow-step-title">上下文组装</div><div class="flow-step-desc">Top-K 文档片段 + 历史背景组装为 Prompt</div></div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="flow-step-num">5</div><div><div class="flow-step-title">结构化生成</div><div class="flow-step-desc">Qwen3.7 Max 按研报模板生成深度摘要</div></div></div>
+  </div>
+
+  <h4>研报输出结构</h4>
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="card"><div class="card-icon">📖</div><div class="card-title">一、事件背景</div><div class="card-desc">事件起因与历史脉络<br>关键参与方与利益关系</div></div>
+    <div class="card"><div class="card-icon">📊</div><div class="card-title">二、现状分析</div><div class="card-desc">最新动态与关键数据<br>各方立场与反应</div></div>
+    <div class="card"><div class="card-icon">📈</div><div class="card-title">三、趋势研判</div><div class="card-desc">短期预测 1-3 个月<br>中长期展望 6-12 个月</div></div>
+    <div class="card"><div class="card-icon">⚠️</div><div class="card-title">四、风险提示</div><div class="card-desc">政策/监管风险<br>市场波动风险</div></div>
+  </div>
+</div>
+
+<!-- ==================== BRIEF ==================== -->
+<span class="section-anchor" id="brief"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 04 · Module 04</div>
+    <div class="section-title">每日简报生成与推送</div>
+    <div class="section-subtitle">将处理结果汇编为结构化每日简报，支持多格式导出</div>
+  </div>
+  <h4>日报结构</h4>
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+    <div class="card"><div class="card-icon">🔴</div><div class="card-title">今日要闻 TOP5</div><div class="card-desc">按重要性排序的一句话摘要</div></div>
+    <div class="card"><div class="card-icon">📝</div><div class="card-title">深度研报 2-3 篇</div><div class="card-desc">完整结构化专业研报</div></div>
+    <div class="card"><div class="card-icon">🏭</div><div class="card-title">行业动态速览</div><div class="card-desc">按行业分类的短消息聚合</div></div>
+    <div class="card"><div class="card-icon">📉</div><div class="card-title">数据看板</div><div class="card-desc">关键指标 · 情绪指数变化</div></div>
+    <div class="card"><div class="card-icon">🔮</div><div class="card-title">明日关注</div><div class="card-desc">预告事件与关注要点</div></div>
+  </div>
+  <h4>推送渠道</h4>
+  <div class="card-grid" style="grid-template-columns:repeat(2,1fr);max-width:520px">
+    <div class="card"><div class="card-icon">🔌</div><div class="card-title">REST API</div><div class="card-desc">供下游系统调用</div></div>
+    <div class="card"><div class="card-icon">📥</div><div class="card-title">文件下载</div><div class="card-desc">Markdown / PDF 导出</div></div>
+  </div>
+</div>
+
+<!-- ==================== FRONTEND ==================== -->
+<span class="section-anchor" id="frontend"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 04 · Module 05</div>
+    <div class="section-title">前端架构设计</div>
+    <div class="section-subtitle">Nuxt 3 + Vue 3 + Tailwind CSS + ECharts + Pinia</div>
+  </div>
+  <h3>页面设计概览</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">🏠</div><div class="card-title">Dashboard 工作台</div>
+      <div class="card-desc">统计卡片 · 要闻 TOP5 · 采集趋势图 · 最新研报 · 工作流实时状态</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📰</div><div class="card-title">每日简报</div>
+      <div class="card-desc">日期导航 · 要闻排行 · 研报卡片 · 行业动态 · 数据看板（情绪/热度/波动指数）</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📝</div><div class="card-title">研报详情</div>
+      <div class="card-desc">结构化四段式研报 · 引用溯源标注 · 关键数据表格 · PDF导出</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div><div class="card-title">聚类分析</div>
+      <div class="card-desc">力导向关系图 (ECharts) · 主题簇列表 · 事件时间线 · 重要性评级</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📡</div><div class="card-title">实时监控</div>
+      <div class="card-desc">工作流管道视图 · Agent 状态卡片 · 实时日志流 · 系统资源指标</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚙️</div><div class="card-title">系统配置</div>
+      <div class="card-desc">监控主题管理 · 数据源配置 · 采集频率设置 · 推送渠道配置</div>
+    </div>
+  </div>
+  <h3>技术细节</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>维度</th><th>方案</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>状态管理</strong></td><td>Pinia + Vue Query</td><td>Composition API 组合式 Store + 服务端状态缓存</td></tr>
+      <tr><td><strong>实时通信</strong></td><td>WebSocket + composable</td><td>自动重连（指数退避）· 消息队列 · 响应式同步</td></tr>
+      <tr><td><strong>API 客户端</strong></td><td>ofetch (Nuxt 内置)</td><td>类型安全 · 自动重试 · 请求/响应拦截器</td></tr>
+      <tr><td><strong>路由</strong></td><td>Nuxt 文件系统路由</td><td>pages/ 目录自动生成路由</td></tr>
+      <tr><td><strong>BFF 层</strong></td><td>Nuxt Server Routes</td><td>API 代理转发 · 服务端认证中间件</td></tr>
+    </tbody>
+  </table></div>
+  <h3>响应式断点</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>断点</th><th>宽度</th><th>布局策略</th></tr></thead>
+    <tbody>
+      <tr><td>Desktop</td><td>≥ 1440px</td><td>完整侧边栏 + 多列布局</td></tr>
+      <tr><td>Laptop</td><td>1024 - 1439px</td><td>可折叠侧边栏 + 双列布局</td></tr>
+      <tr><td>Tablet</td><td>768 - 1023px</td><td>隐藏侧边栏（抽屉式）+ 单列布局</td></tr>
+      <tr><td>Mobile</td><td>&lt; 768px</td><td>底部导航 + 卡片流布局</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ==================== AGENTS ==================== -->
+<span class="section-anchor" id="agents"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 05</div>
+    <div class="section-title">LangGraph Agent 详细设计</div>
+  </div>
+  <div class="agent-grid">
+    <div class="agent-card"><div class="agent-name">CollectorAgent</div><div class="agent-role">多源数据采集</div><div class="agent-tools"><span class="agent-tool">NewsAPI</span><span class="agent-tool">WebScraper</span><span class="agent-tool">RSSReader</span></div></div>
+    <div class="agent-card"><div class="agent-name">PreprocessAgent</div><div class="agent-role">文本清洗与标准化</div><div class="agent-tools"><span class="agent-tool">HTMLCleaner</span><span class="agent-tool">LanguageDetector</span></div></div>
+    <div class="agent-card"><div class="agent-name">DedupAgent</div><div class="agent-role">去重检测</div><div class="agent-tools"><span class="agent-tool">BloomFilter</span><span class="agent-tool">SimHash</span><span class="agent-tool">Embedding</span></div></div>
+    <div class="agent-card"><div class="agent-name">ClusterAgent</div><div class="agent-role">语义聚类</div><div class="agent-tools"><span class="agent-tool">HDBSCAN</span><span class="agent-tool">Qwen3-Embedding</span></div></div>
+    <div class="agent-card"><div class="agent-name">ResearchAgent</div><div class="agent-role">RAG检索增强 + 深度摘要</div><div class="agent-tools"><span class="agent-tool">Elasticsearch</span><span class="agent-tool">Reranker</span><span class="agent-tool">Qwen3.7 Max</span></div></div>
+    <div class="agent-card"><div class="agent-name">ReviewAgent</div><div class="agent-role">质量审核</div><div class="agent-tools"><span class="agent-tool">FactChecker</span><span class="agent-tool">HallucinationDetector</span></div></div>
+    <div class="agent-card"><div class="agent-name">ComposeAgent</div><div class="agent-role">研报组装</div><div class="agent-tools"><span class="agent-tool">ReportTemplate</span><span class="agent-tool">MarkdownRenderer</span></div></div>
+    <div class="agent-card"><div class="agent-name">ExportAgent</div><div class="agent-role">格式导出</div><div class="agent-tools"><span class="agent-tool">PDFGenerator</span><span class="agent-tool">MarkdownWriter</span></div></div>
+    <div class="agent-card"><div class="agent-name">DispatchAgent</div><div class="agent-role">推送分发</div><div class="agent-tools"><span class="agent-tool">APIExporter</span><span class="agent-tool">FileExporter</span></div></div>
+  </div>
+  <h3>条件边与循环逻辑</h3>
+  <pre><code># 审核不通过 → 重新生成 (最多3次)
+def review_router(state: PlatformState) -> str:
+    if state["review_passed"]:
+        return "compose"
+    if retry_count >= 3:
+        return "compose"   # 强制通过，附带审核意见
+    return "research"      # 返回重新生成
+
+# 采集失败 → 降级处理
+def collection_router(state: PlatformState) -> str:
+    if len(state["raw_articles"]) == 0:
+        return "fallback_cache"   # 使用Redis缓存的昨日数据
+    return "preprocess"</code></pre>
+</div>
+
+<!-- ==================== CACHE ==================== -->
+<span class="section-anchor" id="cache"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 06</div>
+    <div class="section-title">缓存策略设计 (Redis)</div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>缓存类型</th><th>Key 格式</th><th>TTL</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>API 响应</strong></td><td><code>api:{endpoint}:{hash}</code></td><td>30min</td><td>NewsAPI 等外部 API 响应</td></tr>
+      <tr><td><strong>文章去重</strong></td><td><code>seen:{url_hash}</code></td><td>7d</td><td>已处理文章的 URL 指纹</td></tr>
+      <tr><td><strong>Embedding</strong></td><td><code>emb:{content_hash}</code></td><td>30d</td><td>文本向量，避免重复计算</td></tr>
+      <tr><td><strong>聚类结果</strong></td><td><code>cluster:{date}:{topic}</code></td><td>24h</td><td>当日聚类结果</td></tr>
+      <tr><td><strong>研报缓存</strong></td><td><code>report:{date}:{id}</code></td><td>7d</td><td>已生成的研报</td></tr>
+      <tr><td><strong>日报缓存</strong></td><td><code>brief:{date}</code></td><td>30d</td><td>历史日报</td></tr>
+    </tbody>
+  </table></div>
+  <h4>降级策略</h4>
+  <pre><code>请求 → 查Redis缓存
+  ├── Hit → 直接返回
+  └── Miss → 调用实际服务
+              ├── 成功 → 写入缓存 + 返回
+              └── 失败 → 返回降级数据 (过期缓存 / 默认值)</code></pre>
+</div>
+
+<!-- ==================== API ==================== -->
+<span class="section-anchor" id="api"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 07</div>
+    <div class="section-title">数据流与接口设计</div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>接口</th><th>方法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/v1/collect</code></td><td><span class="tag tag-green">POST</span></td><td>触发即时采集</td></tr>
+      <tr><td><code>/api/v1/topics</code></td><td><span class="tag tag-blue">GET/POST/DELETE</span></td><td>管理监控主题</td></tr>
+      <tr><td><code>/api/v1/briefs</code></td><td><span class="tag tag-blue">GET</span></td><td>获取历史日报列表</td></tr>
+      <tr><td><code>/api/v1/briefs/{date}</code></td><td><span class="tag tag-blue">GET</span></td><td>获取指定日期日报</td></tr>
+      <tr><td><code>/api/v1/briefs/{date}/pdf</code></td><td><span class="tag tag-blue">GET</span></td><td>下载 PDF 版日报</td></tr>
+      <tr><td><code>/api/v1/reports</code></td><td><span class="tag tag-blue">GET</span></td><td>获取研报列表</td></tr>
+      <tr><td><code>/api/v1/reports/{id}</code></td><td><span class="tag tag-blue">GET</span></td><td>获取单篇研报详情</td></tr>
+      <tr><td><code>/api/v1/clusters</code></td><td><span class="tag tag-blue">GET</span></td><td>获取当日聚类结果</td></tr>
+      <tr><td><code>/api/v1/status</code></td><td><span class="tag tag-blue">GET</span></td><td>系统运行状态</td></tr>
+      <tr><td><code>/api/v1/config</code></td><td><span class="tag tag-blue">GET</span> / <span class="tag tag-orange">PUT</span></td><td>系统配置管理</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ==================== STRUCTURE ==================== -->
+<span class="section-anchor" id="structure"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 08</div>
+    <div class="section-title">项目目录结构</div>
+  </div>
+  <pre><code>智览/
+├── backend/                         # 后端服务 (Python)
+│   ├── app/
+│   │   ├── main.py                  # FastAPI 入口
+│   │   ├── config.py                # 配置管理
+│   │   ├── agents/                  # LangGraph Agents (9个)
+│   │   ├── collectors/              # 数据采集器 (NewsAPI/爬虫/RSS/PDF)
+│   │   ├── processors/              # 文本处理 (清洗/去重/聚类)
+│   │   ├── rag/                     # RAG模块 (向量化/检索/重排序)
+│   │   ├── generators/              # 内容生成 (摘要/研报/Prompt)
+│   │   ├── exporters/               # 导出模块 (Markdown/PDF)
+│   │   ├── dispatchers/             # 推送模块 (API/文件)
+│   │   ├── cache/                   # Redis缓存层
+│   │   ├── scheduler/               # 任务调度 (APScheduler/Celery)
+│   │   ├── models/                  # 数据模型 (SQLAlchemy)
+│   │   └── api/                     # API路由 + WebSocket
+│   ├── templates/                   # Jinja2 报告模板
+│   ├── tests/                       # 测试
+│   ├── configs/                     # settings.yaml + sources.yaml
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/                        # 前端应用 (Nuxt 3)
+│   ├── pages/                       # 文件系统路由
+│   ├── layouts/                     # 布局组件
+│   ├── components/                  # Vue组件库
+│   ├── composables/                 # 组合式函数
+│   ├── stores/                      # Pinia状态
+│   ├── plugins/                     # Nuxt插件
+│   ├── utils/                       # 工具函数
+│   ├── types/                       # TypeScript类型
+│   ├── nuxt.config.ts
+│   ├── app.vue
+│   └── Dockerfile
+│
+├── docker-compose.yaml              # 全栈编排
+└── .env.example</code></pre>
+</div>
+
+<!-- ==================== CHALLENGES ==================== -->
+<span class="section-anchor" id="challenges"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 09</div>
+    <div class="section-title">关键技术难点与解决方案</div>
+  </div>
+
+  <h3>长文本处理</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>挑战</th><th>解决方案</th></tr></thead>
+    <tbody>
+      <tr><td>单篇新闻超长</td><td>RecursiveCharacterTextSplitter 智能分段</td></tr>
+      <tr><td>多文档上下文窗口超限</td><td>Map-Reduce 摘要策略：先分篇摘要，再合并提炼</td></tr>
+      <tr><td>研报生成需要大量上下文</td><td>RAG 分层检索 + Reranker 精选 Top-K 最相关片段</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>摘要质量保障</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>挑战</th><th>解决方案</th></tr></thead>
+    <tbody>
+      <tr><td>LLM 幻觉</td><td>ReviewAgent 事实核查 + 引用溯源</td></tr>
+      <tr><td>内容空洞</td><td>强制要求数据引用 + 结构化模板约束</td></tr>
+      <tr><td>观点偏颇</td><td>多源交叉验证 + 平衡性检查 Prompt</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>工作流可靠性</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>挑战</th><th>解决方案</th></tr></thead>
+    <tbody>
+      <tr><td>Agent 执行失败</td><td>LangGraph Checkpointing + 断点恢复</td></tr>
+      <tr><td>外部 API 不稳定</td><td>Redis 缓存降级 + 指数退避重试</td></tr>
+      <tr><td>处理时间过长</td><td>异步执行 + 进度回调 + 超时控制</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ==================== DEPLOY ==================== -->
+<span class="section-anchor" id="deploy"></span>
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">Section 10</div>
+    <div class="section-title">部署架构</div>
+    <div class="section-subtitle">Docker Compose 全栈编排</div>
+  </div>
+  <div class="arch-diagram">
+    <div class="arch-layer" style="border-color:oklch(0.52 0.18 230/0.4)">
+      <div class="arch-layer-label" style="color:var(--primary)">应用服务层</div>
+      <div class="deploy-grid">
+        <div class="deploy-box"><div class="deploy-box-name">Nuxt 3</div><div class="deploy-box-port">:3000</div><div class="deploy-box-desc">前端 SSR 服务</div></div>
+        <div class="deploy-box"><div class="deploy-box-name">FastAPI</div><div class="deploy-box-port">:8000</div><div class="deploy-box-desc">后端 API 服务</div></div>
+        <div class="deploy-box"><div class="deploy-box-name">Celery Worker</div><div class="deploy-box-port">—</div><div class="deploy-box-desc">异步任务执行</div></div>
+        <div class="deploy-box"><div class="deploy-box-name">Celery Beat</div><div class="deploy-box-port">—</div><div class="deploy-box-desc">定时任务调度</div></div>
+      </div>
+    </div>
+    <div class="arch-arrow">↕</div>
+    <div class="arch-layer" style="border-color:oklch(0.80 0.16 80/0.4)">
+      <div class="arch-layer-label" style="color:var(--warning)">数据层</div>
+      <div class="deploy-grid">
+        <div class="deploy-box"><div class="deploy-box-name">Redis</div><div class="deploy-box-port">:6379</div><div class="deploy-box-desc">缓存 + 消息队列</div></div>
+        <div class="deploy-box"><div class="deploy-box-name">Elasticsearch</div><div class="deploy-box-port">:9200</div><div class="deploy-box-desc">向量 + 全文检索</div></div>
+        <div class="deploy-box"><div class="deploy-box-name">MySQL</div><div class="deploy-box-port">:3306</div><div class="deploy-box-desc">关系型数据</div></div>
+      </div>
+    </div>
+    <div class="arch-arrow">↕</div>
+    <div class="arch-layer" style="border-color:oklch(0.75 0.15 160/0.4)">
+      <div class="arch-layer-label" style="color:var(--accent)">网关层</div>
+      <div class="deploy-grid">
+        <div class="deploy-box" style="grid-column:span 2"><div class="deploy-box-name">Nginx</div><div class="deploy-box-port">:80 / :443</div><div class="deploy-box-desc">反向代理 · / → Nuxt 3:3000 · /api → FastAPI:8000</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer style="text-align:center;padding:3rem 0 1rem;border-top:1px solid var(--border);margin-top:2rem">
+  <div style="font-size:0.8rem;color:var(--text-dim)">智览 · AI自动化研报平台 · 功能架构设计书 v1.0</div>
+  <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Last Updated: 2026-05-27</div>
+</footer>
+
+</div>
+</main>
+
+<script>
+// Sidebar active state on scroll
+const sections = document.querySelectorAll('.section-anchor, .hero');
+const links = document.querySelectorAll('.sidebar-link');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id || e.target.closest('[id]')?.id;
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
