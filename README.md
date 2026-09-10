@@ -207,6 +207,4 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-## 安全提示
 
-不要将真实的 API Key、数据库密码、邮箱授权码、`.env` 文件、数据库文件、日志、报告导出物或依赖目录提交到 GitHub。项目根目录的 `.gitignore` 已配置相应忽略规则。
