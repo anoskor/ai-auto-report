@@ -32,6 +32,8 @@
 │   ├── server/api/            # Nuxt 服务端接口代理
 │   ├── backend/
 │   │   ├── app/              # FastAPI 应用
+│   │   ├── evaluation/       # 检索和结果评估脚本
+│   │   ├── runtime/          # 本地数据库和报告输出（不提交）
 │   │   ├── .env.example      # 配置模板
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
@@ -120,7 +122,7 @@ npm run dev
 
 ## Docker 启动
 
-Docker 构建后端镜像时会读取 `zhilan-platform/backend/.env`，因此首次启动前必须先创建它：
+ Docker Compose 会在运行时从 `zhilan-platform/backend/.env` 加载后端、MySQL 和 Elasticsearch 配置，因此首次启动前必须先创建它：
 
 ```powershell
 cd zhilan-platform/backend
@@ -175,9 +177,9 @@ Compose 会启动前端、后端、MySQL、Redis 和 Elasticsearch。后端容�
 
 摘要或研报生成会失败。确认 `zhilan-platform/backend/.env` 中存在真实的 `DEEPSEEK_API_KEY`，并重启后端。
 
-### Docker 构建找不到 `.env`
+### Docker 启动找不到 `.env`
 
-后端 Dockerfile 会复制 `.env`。在 `zhilan-platform/backend` 下执行 `Copy-Item .env.example .env` 后，再重新运行 `docker compose up -d --build`。
+在 `zhilan-platform/backend` 下执行 `Copy-Item .env.example .env`，确认文件中的数据库、Elasticsearch 和 AI 服务配置正确后，再运行 `docker compose up -d --build`。`.env` 不会被复制进镜像，也不会提交到 Git。
 
 ### MySQL 连接失败
 

@@ -7,6 +7,7 @@ node_modules/
 # 报告和导出文件
 exports/
 **/exports/
+**/runtime/
 
 # 数据库文件
 *.db

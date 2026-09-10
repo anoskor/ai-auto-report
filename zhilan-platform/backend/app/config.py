@@ -80,7 +80,7 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
 
     # ========== 文件存储 ==========
-    EXPORT_DIR: str = "./exports"
+    EXPORT_DIR: str = "./runtime/exports"
     TEMPLATE_DIR: str = "./templates"
 
     class Config:

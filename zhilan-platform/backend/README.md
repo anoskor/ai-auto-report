@@ -211,6 +211,8 @@ backend/
 │   ├── generators/       # 摘要/研报生成
 │   ├── dispatchers/      # 推送分发
 │   └── exporters/        # Markdown/PDF 导出
+├── evaluation/            # 检索和结果评估脚本
+├── runtime/               # 本地数据库和报告输出（不提交 git）
 ├── requirements.txt
 ├── Dockerfile
 ├── .env                  # 环境变量（不提交 git）

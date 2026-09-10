@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 
 # 创建数据目录
-RUN mkdir -p /app/exports
+RUN mkdir -p /app/runtime/exports
 
 EXPOSE 8000
 
