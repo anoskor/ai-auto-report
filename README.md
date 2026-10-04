@@ -71,7 +71,7 @@ MYSQL_ROOT_PASSWORD=你的MySQL密码
 ELASTIC_PASSWORD=你的Elasticsearch密码
 ```
 
-如需使用向量检索、TianAPI 或邮件通知，再配置对应的 `DASHSCOPE_API_KEY`、`TIANAPI_KEY` 和 QQ 邮箱变量。`.env` 只保存在本地，不要提交到 GitHub；提交时使用 `.env.example`。
+如需使用向量检索、TianAPI 或邮件通知，再配置对应的 `DASHSCOPE_API_KEY`、`TIANAPI_KEY` 和 QQ 邮箱变量。
 
 完整变量列表见 [backend/.env.example](zhilan-platform/backend/.env.example)，后端配置说明见 [backend/README.md](zhilan-platform/backend/README.md)。
 
